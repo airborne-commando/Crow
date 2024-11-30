@@ -30,7 +30,7 @@ Install requirements for Crow.
 # Features
 
 Hudson email search:
-* Search an email for hudson rock to see if it's been infected.
+* Search an email for hudson rock to see if it's been assocated with an infected computer.
 
 ![image](https://github.com/user-attachments/assets/9685a7a4-50b1-4032-8e0c-67cb2ef3631b)
 
