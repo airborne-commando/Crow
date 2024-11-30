@@ -13,3 +13,5 @@ to start it's install:
     source venv/bin/activate
     
     pip install -r requirements.txt
+    
+    pip install -r requirements_GUI.txt
