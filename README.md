@@ -14,3 +14,14 @@ Before you attempt to install; you'll need to move the crow files (excluding the
     pip install -r requirements.txt
     
     pip install -r requirements_GUI.txt
+
+# Features
+
+Hudson email search:
+* Search an email for hudson rock to see if it's been infected.
+
+![image](https://github.com/user-attachments/assets/9685a7a4-50b1-4032-8e0c-67cb2ef3631b)
+
+* Save and search functions to continue an OSINT in JSON formatting
+
+![image](https://github.com/user-attachments/assets/25551407-b006-439d-8d7a-c586f1740986)
