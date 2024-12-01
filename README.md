@@ -38,22 +38,22 @@ Hudson email search:
 
 ![image](https://github.com/user-attachments/assets/25551407-b006-439d-8d7a-c586f1740986)
 
-contents of the saved json file, example:
+* contents of the saved json file, example:
 
-    {
-        "hudson_email_input": "",
-        "username_input": "manvirdi2000",
-        "email_input": "",
-        "permute_checkbox": true,
-        "permuteall_checkbox": true,
-        "no_nsfw_checkbox": true,
-        "proxy_input": "",
-        "timeout_spinbox": 30,
-        "no_update_checkbox": true,
-        "csv_checkbox": true,
-        "pdf_checkbox": true,
-        "verbose_checkbox": true,
-        "dump_checkbox": true,
-        "instagram_session_id": "",
-        "AI_checkbox": true
-    }
+        {
+            "hudson_email_input": "",
+            "username_input": "manvirdi2000",
+            "email_input": "",
+            "permute_checkbox": true,
+            "permuteall_checkbox": true,
+            "no_nsfw_checkbox": true,
+            "proxy_input": "",
+            "timeout_spinbox": 30,
+            "no_update_checkbox": true,
+            "csv_checkbox": true,
+            "pdf_checkbox": true,
+            "verbose_checkbox": true,
+            "dump_checkbox": true,
+            "instagram_session_id": "",
+            "AI_checkbox": true
+        }
