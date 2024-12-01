@@ -43,11 +43,11 @@ Hudson email search:
         {
             "hudson_email_input": "",
             "username_input": "manvirdi2000",
-            "email_input": "",
+            "email_input": "manvirdi2000@gmail.com",
             "permute_checkbox": true,
             "permuteall_checkbox": true,
             "no_nsfw_checkbox": true,
-            "proxy_input": "",
+            "proxy_input": "127.0.0.1",
             "timeout_spinbox": 30,
             "no_update_checkbox": true,
             "csv_checkbox": true,
@@ -55,5 +55,6 @@ Hudson email search:
             "verbose_checkbox": true,
             "dump_checkbox": true,
             "instagram_session_id": "",
-            "AI_checkbox": true
+            "AI_checkbox": true,
+            "filter": "cat=social"
         }
