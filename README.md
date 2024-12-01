@@ -1,7 +1,7 @@
 # Crow
 A gui Edition of the OSINT tool blackbird.
 
-To install simply clone [blackbirds repo](https://github.com/p1ngul1n0/blackbird.git) from here you may install crow by [cloning it](https://github.com/Nthompson096/crow)
+To install simply clone [blackbirds repo](https://github.com/p1ngul1n0/blackbird.git) from here you may install crow by [cloning it](https://github.com/Nthompson096/crow) or downloading the files from this repo and placing them inside blackbirds root directory.
 
 The GUI tool mainly uses the functionalities of blackbird; so you'd need to clone blackbird first and either download or clone crow and it's requirements_GUI.txt
 
