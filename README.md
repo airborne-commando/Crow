@@ -38,7 +38,7 @@ Hudson email search:
 
 ![image](https://github.com/user-attachments/assets/25551407-b006-439d-8d7a-c586f1740986)
 
-contents of the saved json file:
+contents of the saved json file, example:
 
     {
         "hudson_email_input": "",
