@@ -289,7 +289,8 @@ class BlackbirdGUI(QMainWindow):
                 "verbose_checkbox": self.verbose_checkbox.isChecked(),
                 "dump_checkbox": self.dump_checkbox.isChecked(),
                 "instagram_session_id": self.instagram_session_id.text(),
-                "AI_checkbox": self.AI_checkbox.isChecked()
+                "AI_checkbox": self.AI_checkbox.isChecked(),
+                "filter": self.filter_input.text()
             }
 
             # Save the settings to the file with proper JSON format
@@ -320,7 +321,8 @@ class BlackbirdGUI(QMainWindow):
                 "verbose_checkbox": (self.verbose_checkbox.setChecked, bool),
                 "dump_checkbox": (self.dump_checkbox.setChecked, bool),
                 "instagram_session_id": (self.instagram_session_id.setText, str),
-                "AI_checkbox": (self.AI_checkbox.setChecked, bool)
+                "AI_checkbox": (self.AI_checkbox.setChecked, bool),
+                "filter": (self.filter_input.setText, str)
             }
 
             # Apply the loaded settings
