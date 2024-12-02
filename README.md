@@ -3,29 +3,13 @@ A gui Edition of the OSINT tool blackbird.
 
 To install simply clone [blackbirds repo](https://github.com/p1ngul1n0/blackbird.git) from here you may install crow by [cloning it](https://github.com/Nthompson096/crow) or downloading the files from this repo and placing them inside blackbirds root directory.
 
-The GUI tool mainly uses the functionalities of blackbird; so you'd need to clone blackbird first and either download or clone crow and it's requirements_GUI.txt
-
-Before you attempt to install; you'll need to move the crow files (excluding the readme) into the root of the backbird directory, from there you can do the following.
-
 In one command:
 
-    python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt && pip install -r requirements_GUI.txt
+        git clone https://github.com/p1ngul1n0/blackbird.git && git clone https://github.com/Nthompson096/crow.git && mv crow/*.txt ./blackbird/ && mv crow/*.py ./blackbird/ && cd ./blackbird/ && python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt && pip install -r requirements_GUI.txt
 
-In a few
-    
-    python3 -m venv venv
+after that's finished feel free to run:
 
-Source the binary:
-    
-    source venv/bin/activate
-
-Install requirements for blackbird:
-
-    pip install -r requirements.txt
-
-Install requirements for Crow.
-
-    pip install -r requirements_GUI.txt
+    python3 crow.py
 
 # Features
 
