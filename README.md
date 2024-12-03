@@ -43,4 +43,4 @@ Hudson email search:
             "filter": "cat=social"
         }
 
-As for the instagram session ID; I'd probably recommend using a fake instagram account if you can that way you don't get locked out of your main. But you may be already aware of that.
+As for the instagram session ID; I'd probably recommend using a fake instagram account if you can that way you don't get locked out of your main. However you may be already aware of that.
