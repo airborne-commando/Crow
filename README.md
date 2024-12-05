@@ -1,7 +1,7 @@
 # Crow
 A gui Edition of the OSINT tool blackbird.
 
-To install simply clone [blackbirds repo](https://github.com/p1ngul1n0/blackbird.git) from here you may install crow by [cloning it](https://github.com/airborne-commando/crow.git) or downloading the files from this repo and placing them inside blackbirds root directory. Can also check the releases page.
+To install simply clone [blackbirds repo](https://github.com/p1ngul1n0/blackbird.git) from here you may install crow by [cloning it](https://github.com/airborne-commando/crow.git) or downloading the files from this repo and placing them inside blackbirds root directory. Can also check the releases page; will list some fixes there.
 
 In one command:
 
