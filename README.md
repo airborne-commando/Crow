@@ -5,7 +5,7 @@ To install simply clone [blackbirds repo](https://github.com/p1ngul1n0/blackbird
 
 In one command:
 
-    git clone https://github.com/p1ngul1n0/blackbird.git && git clone https://github.com/Nthompson096/crow.git && mv crow/*.txt ./blackbird/ && mv crow/*.py ./blackbird/ && cd ./blackbird/ && python3 -m venv venv && source venv/bin/activate && pip3 install -r requirements.txt && pip3 install -r requirements_GUI.txt
+    git clone https://github.com/p1ngul1n0/blackbird.git && git clone https://github.com/airborne-commando/crow.git && mv crow/*.txt ./blackbird/ && mv crow/*.py ./blackbird/ && cd ./blackbird/ && python3 -m venv venv && source venv/bin/activate && pip3 install -r requirements.txt && pip3 install -r requirements_GUI.txt
 
 after that's finished feel free to run:
 
