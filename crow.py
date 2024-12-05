@@ -1,3 +1,4 @@
+
 import sys
 import subprocess
 import os
@@ -7,6 +8,10 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QH
                              QLabel, QLineEdit, QPushButton, QTextEdit, QFileDialog, 
                              QCheckBox, QGroupBox, QFormLayout, QSpinBox, QMessageBox)
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
+    # Import the separate save and load functions
+from save_settings import save_settings
+from load_settings import load_settings
+from build_blackbird_command import build_blackbird_command
 
 # Worker class that handles executing the Blackbird command in a separate thread
 class BlackbirdWorker(QThread):
@@ -194,8 +199,8 @@ class BlackbirdGUI(QMainWindow):
         instagram_group.setLayout(instagram_layout)
         layout.addWidget(instagram_group)
 
-        # Now you can initialize the button_layout here
-        button_layout = QHBoxLayout()  # Initialize button_layout first
+        button_layout = QHBoxLayout()
+        # Save and Load buttons connected to the functions
         save_button = QPushButton("Save Settings")
         save_button.clicked.connect(self.save_settings)
         button_layout.addWidget(save_button)
@@ -266,69 +271,12 @@ class BlackbirdGUI(QMainWindow):
             self.update_output(f"An error occurred: {e}")
 
     def save_settings(self):
-        # Open a file dialog to select where to save the JSON file
-        file_name, _ = QFileDialog.getSaveFileName(self, "Save Settings", "", "JSON Files (*.json);;All Files (*)")
-        if file_name:
-            # Ensure the file name ends with .json if not already
-            if not file_name.endswith('.json'):
-                file_name += '.json'
-
-            # Collect the current settings into a dictionary
-            settings = {
-                "hudson_email_input": self.hudson_email_input.text(),
-                "username_input": self.username_input.text(),
-                "email_input": self.email_input.text(),
-                "permute_checkbox": self.permute_checkbox.isChecked(),
-                "permuteall_checkbox": self.permuteall_checkbox.isChecked(),
-                "no_nsfw_checkbox": self.no_nsfw_checkbox.isChecked(),
-                "proxy_input": self.proxy_input.text(),
-                "timeout_spinbox": self.timeout_spinbox.value(),
-                "no_update_checkbox": self.no_update_checkbox.isChecked(),
-                "csv_checkbox": self.csv_checkbox.isChecked(),
-                "pdf_checkbox": self.pdf_checkbox.isChecked(),
-                "verbose_checkbox": self.verbose_checkbox.isChecked(),
-                "dump_checkbox": self.dump_checkbox.isChecked(),
-                "instagram_session_id": self.instagram_session_id.text(),
-                "AI_checkbox": self.AI_checkbox.isChecked(),
-                "filter": self.filter_input.text()
-            }
-
-            # Save the settings to the file with proper JSON format
-            with open(file_name, 'w') as f:
-                json.dump(settings, f, indent=4)
+        # Use the modular save_settings function
+        save_settings(self)
 
     def load_settings(self):
-        # Open a file dialog to select a JSON file to load
-        file_name, _ = QFileDialog.getOpenFileName(self, "Open Settings", "", "JSON Files (*.json);;All Files (*)")
-        if file_name:
-            # Load the settings from the JSON file
-            with open(file_name, 'r') as f:
-                settings = json.load(f)
-
-            # Define a mapping of setting keys to widget methods and types
-            setting_mappings = {
-                "hudson_email_input": (self.hudson_email_input.setText, str),
-                "username_input": (self.username_input.setText, str),
-                "email_input": (self.email_input.setText, str),
-                "permute_checkbox": (self.permute_checkbox.setChecked, bool),
-                "permuteall_checkbox": (self.permuteall_checkbox.setChecked, bool),
-                "no_nsfw_checkbox": (self.no_nsfw_checkbox.setChecked, bool),
-                "proxy_input": (self.proxy_input.setText, str),
-                "timeout_spinbox": (self.timeout_spinbox.setValue, int),
-                "no_update_checkbox": (self.no_update_checkbox.setChecked, bool),
-                "csv_checkbox": (self.csv_checkbox.setChecked, bool),
-                "pdf_checkbox": (self.pdf_checkbox.setChecked, bool),
-                "verbose_checkbox": (self.verbose_checkbox.setChecked, bool),
-                "dump_checkbox": (self.dump_checkbox.setChecked, bool),
-                "instagram_session_id": (self.instagram_session_id.setText, str),
-                "AI_checkbox": (self.AI_checkbox.setChecked, bool),
-                "filter": (self.filter_input.setText, str)
-            }
-
-            # Apply the loaded settings
-            for key, (set_method, value_type) in setting_mappings.items():
-                if key in settings:
-                    set_method(value_type(settings[key]))
+        # Use the modular load_settings function
+        load_settings(self)
 
     def show_instagram_help(self):
         QMessageBox.information(self, "Instagram Session ID Help",
@@ -379,59 +327,32 @@ class BlackbirdGUI(QMainWindow):
             self.worker.terminate()
             self.worker.wait()
 
-        # Initialize the Blackbird command with the basic parameters
-        command = ["python", "blackbird.py"]
+        # Get the necessary input values from the GUI
+        username_input = self.username_input.text()
+        email_input = self.email_input.text()
+        username_file_input = self.username_file_input.text()
+        email_file_input = self.email_file_input.text()
+        permute_checkbox = self.permute_checkbox.isChecked()
+        permuteall_checkbox = self.permuteall_checkbox.isChecked()
+        AI_checkbox = self.AI_checkbox.isChecked()
+        no_nsfw_checkbox = self.no_nsfw_checkbox.isChecked()
+        no_update_checkbox = self.no_update_checkbox.isChecked()
+        csv_checkbox = self.csv_checkbox.isChecked()
+        pdf_checkbox = self.pdf_checkbox.isChecked()
+        verbose_checkbox = self.verbose_checkbox.isChecked()
+        dump_checkbox = self.dump_checkbox.isChecked()
+        proxy_input = self.proxy_input.text()
+        timeout_spinbox = self.timeout_spinbox.value()
+        filter_input = self.filter_input.text()
+        instagram_session_id = self.instagram_session_id.text()
 
-        # Function to handle appending parameters if text is present
-        def add_params(param, text, cmd_list):
-            if text:
-                items = [item.strip() for item in text.split(',')]
-                for item in items:
-                    cmd_list.extend([param, item])
-
-        # Add parameters for username and email
-        add_params("-u", self.username_input.text(), command)
-        add_params("-e", self.email_input.text(), command)
-
-        # Add file parameters if selected
-        file_params = {
-            "--username-file": self.username_file_input.text(),
-            "--email-file": self.email_file_input.text()
-        }
-        command.extend([param for param, value in file_params.items() if value])
-
-        # Add permute options if selected and exactly one username is provided
-        if self.username_input.text() and len(self.username_input.text().split(',')) == 1:
-            if self.permute_checkbox.isChecked():
-                command.append("--permute")
-            elif self.permuteall_checkbox.isChecked():
-                command.append("--permuteall")
-
-        # Add other options based on checkbox states
-        checkboxes = {
-            "--ai": self.AI_checkbox.isChecked(),
-            "--no-nsfw": self.no_nsfw_checkbox.isChecked(),
-            "--no-update": self.no_update_checkbox.isChecked(),
-            "--csv": self.csv_checkbox.isChecked(),
-            "--pdf": self.pdf_checkbox.isChecked(),
-            "--verbose": self.verbose_checkbox.isChecked(),
-            "--dump": self.dump_checkbox.isChecked()
-        }
-        command.extend([param for param, checked in checkboxes.items() if checked])
-
-        # Add proxy and timeout options
-        if self.proxy_input.text():
-            command.extend(["--proxy", self.proxy_input.text()])
-        
-        command.extend(["--timeout", str(self.timeout_spinbox.value())])
-
-        # Add filter option if text is present
-        if self.filter_input.text():
-            command.extend(["--filter", self.filter_input.text()])
-
-        # Set the Instagram session ID environment variable if entered
-        if self.instagram_session_id.text():
-            os.environ["INSTAGRAM_SESSION_ID"] = self.instagram_session_id.text()
+        # Call the build_blackbird_command function to get the command
+        command = build_blackbird_command(username_input, email_input, username_file_input, 
+                                          email_file_input, permute_checkbox, permuteall_checkbox, 
+                                          AI_checkbox, no_nsfw_checkbox, no_update_checkbox, 
+                                          csv_checkbox, pdf_checkbox, verbose_checkbox, 
+                                          dump_checkbox, proxy_input, timeout_spinbox, 
+                                          filter_input, instagram_session_id)
 
         # Clear previous output and start the worker thread
         self.output_area.clear()
@@ -443,7 +364,7 @@ class BlackbirdGUI(QMainWindow):
         # Disable Run button and enable Stop button during execution
         self.run_button.setEnabled(False)
         self.stop_button.setEnabled(True)
-
+    
     def stop_blackbird(self):
         # Stop the Blackbird process if running
         if self.worker and self.worker.isRunning():
