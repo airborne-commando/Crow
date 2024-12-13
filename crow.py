@@ -229,6 +229,28 @@ class BlackbirdGUI(QMainWindow):
         self.output_area.setReadOnly(True)
         layout.addWidget(self.output_area)
 
+        # Easter egg setup
+        self.key_sequence = ""
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
+    def keyPressEvent(self, event):
+        super().keyPressEvent(event)
+        self.key_sequence += event.text()
+        
+        if 'iddqd' in self.key_sequence.lower():
+            self.trigger_easter_egg()
+            self.key_sequence = ''
+        
+        if len(self.key_sequence) > 10:
+            self.key_sequence = self.key_sequence[-10:]
+
+    def trigger_easter_egg(self):
+        easter_egg = """
+Crows mimic, crows are intelligent!
+        """
+        self.output_area.append("Easter egg activated!")
+        self.output_area.append(easter_egg)
+
     def select_username_file(self):
         # Open a file dialog to select a username file and set its path in the input field
         file_name, _ = QFileDialog.getOpenFileName(self, "Select Username File")
