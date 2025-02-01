@@ -9,7 +9,7 @@ In one command:
 
 Having issues with the install on arch?
     
-    yay -S python311  # For Python 3.11
+    yay -S python311
 
 python311
 
@@ -17,7 +17,7 @@ python311
 
 python312
 
-    yay -S python312  # For Python 3.12
+    yay -S python312
 
     git clone https://github.com/p1ngul1n0/blackbird.git && git clone https://github.com/airborne-commando/crow.git && mv crow/*.txt ./blackbird/ && mv crow/*.py ./blackbird/ && cd ./blackbird/ && python3.12 -m venv venv && source venv/bin/activate && pip3 install -r requirements.txt && pip3 install -r requirements_GUI.txt
 
