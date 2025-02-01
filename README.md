@@ -31,6 +31,8 @@ You may have to change
 
 pillow to pillow==10.4.0 inside requirements.txt
 
+Any other issue(s) need to be addressed at [blackbirds repo](https://github.com/p1ngul1n0/blackbird/issues)
+
 after that's finished feel free to run:
 
     python3 crow.py
