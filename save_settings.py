@@ -27,7 +27,7 @@ def save_settings(gui_instance):
             "verbose_checkbox": gui_instance.verbose_checkbox.isChecked(),
             "dump_checkbox": gui_instance.dump_checkbox.isChecked(),
             "instagram_session_id": gui_instance.instagram_session_id.text(),
-            "AI_checkbox": gui_instance.AI_checkbox.isChecked(),
+#            "AI_checkbox": gui_instance.AI_checkbox.isChecked(),
             "filter": gui_instance.filter_input.text()
         }
 
