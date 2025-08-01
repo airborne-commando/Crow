@@ -1,7 +1,12 @@
 # build_blackbird_command.py
 
+# def build_blackbird_command(username_input, email_input, username_file_input, email_file_input, 
+#                             permute_checkbox, permuteall_checkbox, AI_checkbox, no_nsfw_checkbox, 
+#                             no_update_checkbox, csv_checkbox, pdf_checkbox, verbose_checkbox, 
+#                             dump_checkbox, proxy_input, timeout_spinbox, filter_input, 
+#                             instagram_session_id):
 def build_blackbird_command(username_input, email_input, username_file_input, email_file_input, 
-                            permute_checkbox, permuteall_checkbox, AI_checkbox, no_nsfw_checkbox, 
+                            permute_checkbox, permuteall_checkbox, no_nsfw_checkbox, 
                             no_update_checkbox, csv_checkbox, pdf_checkbox, verbose_checkbox, 
                             dump_checkbox, proxy_input, timeout_spinbox, filter_input, 
                             instagram_session_id):
@@ -31,9 +36,20 @@ def build_blackbird_command(username_input, email_input, username_file_input, em
         elif permuteall_checkbox:
             command.append("--permuteall")
 
+    # # Add other options based on checkbox states
+    # checkboxes = {
+    #     "--ai": AI_checkbox,
+    #     "--no-nsfw": no_nsfw_checkbox,
+    #     "--no-update": no_update_checkbox,
+    #     "--csv": csv_checkbox,
+    #     "--pdf": pdf_checkbox,
+    #     "--verbose": verbose_checkbox,
+    #     "--dump": dump_checkbox
+    # }
+    # command.extend([param for param, checked in checkboxes.items() if checked])
+
     # Add other options based on checkbox states
     checkboxes = {
-        "--ai": AI_checkbox,
         "--no-nsfw": no_nsfw_checkbox,
         "--no-update": no_update_checkbox,
         "--csv": csv_checkbox,
@@ -42,6 +58,7 @@ def build_blackbird_command(username_input, email_input, username_file_input, em
         "--dump": dump_checkbox
     }
     command.extend([param for param, checked in checkboxes.items() if checked])
+
 
     # Add proxy and timeout options
     if proxy_input:
