@@ -102,14 +102,14 @@ class BlackbirdGUI(QMainWindow):
         options_group = QGroupBox("Options")
         options_layout = QVBoxLayout()
 
-        AI_layout = QHBoxLayout()
-        self.AI_checkbox = QCheckBox("Extract metadata AI")
-        AI_layout.addWidget(self.AI_checkbox)
-        AI_help_button = QPushButton("?")
-        AI_help_button.setFixedSize(30, 30)
-        AI_help_button.clicked.connect(self.show_AI_help)
-        AI_layout.addWidget(AI_help_button)
-        options_layout.addLayout(AI_layout)
+        # AI_layout = QHBoxLayout()
+        # self.AI_checkbox = QCheckBox("Extract metadata AI")
+        # AI_layout.addWidget(self.AI_checkbox)
+        # AI_help_button = QPushButton("?")
+        # AI_help_button.setFixedSize(30, 30)
+        # AI_help_button.clicked.connect(self.show_AI_help)
+        # AI_layout.addWidget(AI_help_button)
+        # options_layout.addLayout(AI_layout)
         
         # Permute username checkbox with help button on the right
         permute_layout = QHBoxLayout()
@@ -355,7 +355,7 @@ Crows mimic, crows are intelligent!
         email_file_input = self.email_file_input.text()
         permute_checkbox = self.permute_checkbox.isChecked()
         permuteall_checkbox = self.permuteall_checkbox.isChecked()
-        AI_checkbox = self.AI_checkbox.isChecked()
+        # AI_checkbox = self.AI_checkbox.isChecked()
         no_nsfw_checkbox = self.no_nsfw_checkbox.isChecked()
         no_update_checkbox = self.no_update_checkbox.isChecked()
         csv_checkbox = self.csv_checkbox.isChecked()
@@ -367,10 +367,17 @@ Crows mimic, crows are intelligent!
         filter_input = self.filter_input.text()
         instagram_session_id = self.instagram_session_id.text()
 
-        # Call the build_blackbird_command function to get the command
+        # # Call the build_blackbird_command function to get the command
+        # command = build_blackbird_command(username_input, email_input, username_file_input, 
+        #                                   email_file_input, permute_checkbox, permuteall_checkbox, 
+        #                                   AI_checkbox, no_nsfw_checkbox, no_update_checkbox, 
+        #                                   csv_checkbox, pdf_checkbox, verbose_checkbox, 
+        #                                   dump_checkbox, proxy_input, timeout_spinbox, 
+        #                                   filter_input, instagram_session_id)
+
         command = build_blackbird_command(username_input, email_input, username_file_input, 
                                           email_file_input, permute_checkbox, permuteall_checkbox, 
-                                          AI_checkbox, no_nsfw_checkbox, no_update_checkbox, 
+                                          no_nsfw_checkbox, no_update_checkbox, 
                                           csv_checkbox, pdf_checkbox, verbose_checkbox, 
                                           dump_checkbox, proxy_input, timeout_spinbox, 
                                           filter_input, instagram_session_id)
