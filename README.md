@@ -65,7 +65,6 @@ Hudson email search:
             "verbose_checkbox": true,
             "dump_checkbox": true,
             "instagram_session_id": "",
-            "AI_checkbox": true,
             "filter": "cat=social"
         }
 
