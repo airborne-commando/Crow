@@ -27,7 +27,7 @@ def load_settings(gui_instance):
             "verbose_checkbox": (gui_instance.verbose_checkbox.setChecked, bool),
             "dump_checkbox": (gui_instance.dump_checkbox.setChecked, bool),
             "instagram_session_id": (gui_instance.instagram_session_id.setText, str),
-            "AI_checkbox": (gui_instance.AI_checkbox.setChecked, bool),
+ #           "AI_checkbox": (gui_instance.AI_checkbox.setChecked, bool),
             "filter": (gui_instance.filter_input.setText, str)
         }
 
