@@ -24,10 +24,11 @@ def load_settings(gui_instance):
             "no_update_checkbox": (gui_instance.no_update_checkbox.setChecked, bool),
             "csv_checkbox": (gui_instance.csv_checkbox.setChecked, bool),
             "pdf_checkbox": (gui_instance.pdf_checkbox.setChecked, bool),
+            "json_checkbox": (gui_instance.json_checkbox.setChecked, bool),
             "verbose_checkbox": (gui_instance.verbose_checkbox.setChecked, bool),
             "dump_checkbox": (gui_instance.dump_checkbox.setChecked, bool),
             "instagram_session_id": (gui_instance.instagram_session_id.setText, str),
- #           "AI_checkbox": (gui_instance.AI_checkbox.setChecked, bool),
+            "AI_checkbox": (gui_instance.AI_checkbox.setChecked, bool),
             "filter": (gui_instance.filter_input.setText, str)
         }
 

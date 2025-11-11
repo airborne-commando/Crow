@@ -24,10 +24,11 @@ def save_settings(gui_instance):
             "no_update_checkbox": gui_instance.no_update_checkbox.isChecked(),
             "csv_checkbox": gui_instance.csv_checkbox.isChecked(),
             "pdf_checkbox": gui_instance.pdf_checkbox.isChecked(),
+            "json_checkbox": gui_instance.json_checkbox.isChecked(),
             "verbose_checkbox": gui_instance.verbose_checkbox.isChecked(),
             "dump_checkbox": gui_instance.dump_checkbox.isChecked(),
             "instagram_session_id": gui_instance.instagram_session_id.text(),
-#            "AI_checkbox": gui_instance.AI_checkbox.isChecked(),
+            "AI_checkbox": gui_instance.AI_checkbox.isChecked(),
             "filter": gui_instance.filter_input.text()
         }
 

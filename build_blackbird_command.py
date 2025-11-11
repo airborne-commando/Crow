@@ -1,13 +1,9 @@
 # build_blackbird_command.py
+import os
 
-# def build_blackbird_command(username_input, email_input, username_file_input, email_file_input, 
-#                             permute_checkbox, permuteall_checkbox, AI_checkbox, no_nsfw_checkbox, 
-#                             no_update_checkbox, csv_checkbox, pdf_checkbox, verbose_checkbox, 
-#                             dump_checkbox, proxy_input, timeout_spinbox, filter_input, 
-#                             instagram_session_id):
 def build_blackbird_command(username_input, email_input, username_file_input, email_file_input, 
-                            permute_checkbox, permuteall_checkbox, no_nsfw_checkbox, 
-                            no_update_checkbox, csv_checkbox, pdf_checkbox, verbose_checkbox, 
+                            permute_checkbox, permuteall_checkbox, AI_checkbox, no_nsfw_checkbox, 
+                            no_update_checkbox, csv_checkbox, pdf_checkbox, json_checkbox, verbose_checkbox, 
                             dump_checkbox, proxy_input, timeout_spinbox, filter_input, 
                             instagram_session_id):
     command = ["python", "blackbird.py"]
@@ -24,10 +20,10 @@ def build_blackbird_command(username_input, email_input, username_file_input, em
     add_params("-e", email_input, command)
 
     # Add file parameters if selected
-    if username_file_input:  # Ensure the input is not empty
-        command.extend(["--username-file", username_file_input])  # Add file path
-    if email_file_input:  # Ensure the input is not empty
-        command.extend(["--email-file", email_file_input])  # Add file path
+    if username_file_input:
+        command.extend(["--username-file", username_file_input])
+    if email_file_input:
+        command.extend(["--email-file", email_file_input])
 
     # Add permute options if selected and exactly one username is provided
     if username_input and len(username_input.split(',')) == 1:
@@ -36,29 +32,18 @@ def build_blackbird_command(username_input, email_input, username_file_input, em
         elif permuteall_checkbox:
             command.append("--permuteall")
 
-    # # Add other options based on checkbox states
-    # checkboxes = {
-    #     "--ai": AI_checkbox,
-    #     "--no-nsfw": no_nsfw_checkbox,
-    #     "--no-update": no_update_checkbox,
-    #     "--csv": csv_checkbox,
-    #     "--pdf": pdf_checkbox,
-    #     "--verbose": verbose_checkbox,
-    #     "--dump": dump_checkbox
-    # }
-    # command.extend([param for param, checked in checkboxes.items() if checked])
-
     # Add other options based on checkbox states
     checkboxes = {
+        "--ai": AI_checkbox,
         "--no-nsfw": no_nsfw_checkbox,
         "--no-update": no_update_checkbox,
         "--csv": csv_checkbox,
         "--pdf": pdf_checkbox,
+        "--json": json_checkbox,
         "--verbose": verbose_checkbox,
         "--dump": dump_checkbox
     }
     command.extend([param for param, checked in checkboxes.items() if checked])
-
 
     # Add proxy and timeout options
     if proxy_input:

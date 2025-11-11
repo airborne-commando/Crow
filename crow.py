@@ -14,21 +14,40 @@ from build_blackbird_command import build_blackbird_command
 
 # Worker class that handles executing the Blackbird command in a separate thread
 class BlackbirdWorker(QThread):
-    # Signal to send output to the main thread
     output_signal = pyqtSignal(str)
 
-    def __init__(self, command):
-        # Initialize with the command to run
+    def __init__(self, command, needs_ai_confirmation=False):
         super().__init__()
         self.command = command
         self.process = None
+        self.needs_ai_confirmation = needs_ai_confirmation
 
     def run(self):
-        # Run the command using subprocess and capture output
-        self.process = subprocess.Popen(self.command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, shell=True)
+        # Use Popen with stdin to handle interactive prompts
+        self.process = subprocess.Popen(
+            self.command, 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.STDOUT, 
+            stdin=subprocess.PIPE,
+            text=True, 
+            shell=True
+        )
+        
+        # If AI is enabled, automatically respond 'Y' to the consent prompt
+        if self.needs_ai_confirmation:
+            try:
+                # Wait a moment for the prompt to appear, then send 'Y'
+                import time
+                time.sleep(1)
+                self.process.stdin.write('Y\n')
+                self.process.stdin.flush()
+            except Exception as e:
+                self.output_signal.emit(f"AI confirmation error: {e}")
+        
+        # Read output line by line
         for line in self.process.stdout:
-            # Emit output line by line to update the UI
             self.output_signal.emit(line.strip())
+        self.process.stdout.close()
         self.process.wait()
 
     def terminate(self):
@@ -102,14 +121,14 @@ class BlackbirdGUI(QMainWindow):
         options_group = QGroupBox("Options")
         options_layout = QVBoxLayout()
 
-        # AI_layout = QHBoxLayout()
-        # self.AI_checkbox = QCheckBox("Extract metadata AI")
-        # AI_layout.addWidget(self.AI_checkbox)
-        # AI_help_button = QPushButton("?")
-        # AI_help_button.setFixedSize(30, 30)
-        # AI_help_button.clicked.connect(self.show_AI_help)
-        # AI_layout.addWidget(AI_help_button)
-        # options_layout.addLayout(AI_layout)
+        AI_layout = QHBoxLayout()
+        self.AI_checkbox = QCheckBox("Extract metadata AI")
+        AI_layout.addWidget(self.AI_checkbox)
+        AI_help_button = QPushButton("?")
+        AI_help_button.setFixedSize(30, 30)
+        AI_help_button.clicked.connect(self.show_AI_help)
+        AI_layout.addWidget(AI_help_button)
+        options_layout.addLayout(AI_layout)
         
         # Permute username checkbox with help button on the right
         permute_layout = QHBoxLayout()
@@ -177,10 +196,12 @@ class BlackbirdGUI(QMainWindow):
         output_layout = QHBoxLayout()
         self.csv_checkbox = QCheckBox("CSV (Results)")
         self.pdf_checkbox = QCheckBox("PDF (Results)")
+        self.json_checkbox = QCheckBox("JSON (Results)")
         self.verbose_checkbox = QCheckBox("Verbose (LOGS)")
         self.dump_checkbox = QCheckBox("Dump HTML (Results)")
         output_layout.addWidget(self.csv_checkbox)
         output_layout.addWidget(self.pdf_checkbox)
+        output_layout.addWidget(self.json_checkbox)        
         output_layout.addWidget(self.verbose_checkbox)
         output_layout.addWidget(self.dump_checkbox)
         output_group.setLayout(output_layout)
@@ -335,31 +356,43 @@ Crows mimic, crows are intelligent!
                                 "balestek86, _balestek86, balestek86_, balestek_86, balestek-86, balestek.86,\n"
                                 "86balestek, _86balestek, 86balestek_, 86_balestek, 86-balestek, 86.balestek")
 
+    # In crow.py - update the show_AI_help method
     def show_AI_help(self):
         QMessageBox.information(self, "AI Metadata Help",
-                                "The '--ai' option extracts metadata using AI.\n\n"
-                                "For 'balestek86', results will be marked with a robot emoji (🤖).\n"
-                                "Note: AI results may be inaccurate, so use your own judgment.")
+                               "The '--ai' option performs AI analysis on found results.\n\n"
+                               "Features:\n"
+                               "• Generates comprehensive profile summaries\n"
+                               "• Identifies profile types and interests\n"
+                               "• Provides risk assessment flags\n"
+                               "• Adds relevant tags for categorization\n"
+                               "• Shows remaining daily AI query quota\n\n"
+                               "Results are marked with a robot emoji (🤖) and include:\n"
+                               "- Summary of online presence\n"
+                               "- Profile type classification\n" 
+                               "- Key insights and interests\n"
+                               "- Risk flags and warnings\n"
+                               "- Relevant tags\n\n"
+                               "Note: Uses Blackbird AI API with daily query limits.")
 
 
     def run_blackbird(self):
-        # Ensure any previous worker is stopped before starting a new one
         if self.worker and self.worker.isRunning():
             self.worker.terminate()
             self.worker.wait()
 
-        # Get the necessary input values from the GUI
+        # Get all input values
         username_input = self.username_input.text()
         email_input = self.email_input.text()
         username_file_input = self.username_file_input.text()
         email_file_input = self.email_file_input.text()
         permute_checkbox = self.permute_checkbox.isChecked()
         permuteall_checkbox = self.permuteall_checkbox.isChecked()
-        # AI_checkbox = self.AI_checkbox.isChecked()
+        AI_checkbox = self.AI_checkbox.isChecked()
         no_nsfw_checkbox = self.no_nsfw_checkbox.isChecked()
         no_update_checkbox = self.no_update_checkbox.isChecked()
         csv_checkbox = self.csv_checkbox.isChecked()
         pdf_checkbox = self.pdf_checkbox.isChecked()
+        json_checkbox = self.json_checkbox.isChecked()
         verbose_checkbox = self.verbose_checkbox.isChecked()
         dump_checkbox = self.dump_checkbox.isChecked()
         proxy_input = self.proxy_input.text()
@@ -367,29 +400,26 @@ Crows mimic, crows are intelligent!
         filter_input = self.filter_input.text()
         instagram_session_id = self.instagram_session_id.text()
 
-        # # Call the build_blackbird_command function to get the command
-        # command = build_blackbird_command(username_input, email_input, username_file_input, 
-        #                                   email_file_input, permute_checkbox, permuteall_checkbox, 
-        #                                   AI_checkbox, no_nsfw_checkbox, no_update_checkbox, 
-        #                                   csv_checkbox, pdf_checkbox, verbose_checkbox, 
-        #                                   dump_checkbox, proxy_input, timeout_spinbox, 
-        #                                   filter_input, instagram_session_id)
-
+        # Show AI info if enabled
+        if AI_checkbox:
+            self.output_area.append("🤖 AI Analysis Enabled")
+            self.output_area.append("Note: This will analyze results using Blackbird AI")
+            self.output_area.append("")
+            
         command = build_blackbird_command(username_input, email_input, username_file_input, 
                                           email_file_input, permute_checkbox, permuteall_checkbox, 
-                                          no_nsfw_checkbox, no_update_checkbox, 
-                                          csv_checkbox, pdf_checkbox, verbose_checkbox, 
+                                          AI_checkbox, no_nsfw_checkbox, no_update_checkbox, 
+                                          csv_checkbox, pdf_checkbox, json_checkbox, verbose_checkbox, 
                                           dump_checkbox, proxy_input, timeout_spinbox, 
                                           filter_input, instagram_session_id)
 
-        # Clear previous output and start the worker thread
         self.output_area.clear()
-        self.worker = BlackbirdWorker(" ".join(command))
-        self.worker.output_signal.connect(self.update_output)  # Connect output signal to update method
-        self.worker.finished.connect(self.on_worker_finished)  # Handle when worker finishes
+        # Pass AI_checkbox to determine if we need to auto-confirm
+        self.worker = BlackbirdWorker(" ".join(command), needs_ai_confirmation=AI_checkbox)
+        self.worker.output_signal.connect(self.update_output)
+        self.worker.finished.connect(self.on_worker_finished)
         self.worker.start()
         
-        # Disable Run button and enable Stop button during execution
         self.run_button.setEnabled(False)
         self.stop_button.setEnabled(True)
     
@@ -401,15 +431,129 @@ Crows mimic, crows are intelligent!
         self.run_button.setEnabled(True)  # Re-enable Run button
         self.stop_button.setEnabled(False)  # Disable Stop button
 
+    # Enhanced version with file dialog option
     def update_output(self, text):
-        # Update the output area with new text (logs/results)
+        # Initialize AI results buffer if it doesn't exist
+        if not hasattr(self, 'ai_results_buffer'):
+            self.ai_results_buffer = []
+            self.ai_results_started = False
+        
+        # Check if AI analysis is starting
+        if 'analyzing with ai' in text.lower() or '✨ analyzing with ai' in text.lower():
+            self.ai_results_started = True
+            self.ai_results_buffer = [
+                "🤖 BLACKBIRD AI ANALYSIS REPORT",
+                "=" * 60,
+                f"Generated: {self.get_current_timestamp()}",
+                "=" * 60,
+                ""
+            ]
+            
+            # Add search context
+            username = self.username_input.text().strip()
+            email = self.email_input.text().strip()
+            if username:
+                self.ai_results_buffer.append(f"Target Username: {username}")
+            if email:
+                self.ai_results_buffer.append(f"Target Email: {email}")
+            if username or email:
+                self.ai_results_buffer.append("")
+        
+        # Buffer AI results
+        if self.ai_results_started:
+            # Clean and format the text for file output
+            clean_text = text.replace('🤖', '').replace('📊', '').strip()
+            self.ai_results_buffer.append(clean_text)
+            
+            # Check if AI analysis is complete
+            if 'ai queries left' in text.lower():
+                self.ai_results_buffer.extend([
+                    "",
+                    "=" * 60,
+                    f"Analysis complete - {self.get_current_timestamp()}",
+                    "=" * 60
+                ])
+                self.save_ai_results_with_dialog()
+                self.ai_results_started = False
+        
+        # Format for GUI display
+        formatted_text = self.format_ai_text_for_gui(text)
+        
+        # Update GUI
+        self.append_to_output_area(formatted_text)
+
+    def format_ai_text_for_gui(self, text):
+        """Format AI text for GUI display with emojis"""
+        if any(keyword in text.lower() for keyword in ['analyzing with ai', 'ai queries left', '✨']):
+            return f"🤖 {text}"
+        elif text.startswith('[Summary]'):
+            return f"📋 {text}"
+        elif text.startswith('[Profile Type]'):
+            return f"🎯 {text}"
+        elif text.startswith('[Insights]'):
+            return f"💡 {text}"
+        elif text.startswith('[Risk Flags]'):
+            return f"⚠️  {text}"
+        elif text.startswith('[Tags]'):
+            return f"🏷️  {text}"
+        else:
+            return text
+
+    def get_current_timestamp(self):
+        """Get current timestamp for file naming and reports"""
+        from datetime import datetime
+        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    def save_ai_results_with_dialog(self):
+        """Save AI results with option to choose location"""
+        if not self.ai_results_buffer:
+            return
+        
+        try:
+            # Generate default filename
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            
+            username = self.username_input.text().strip() or "analysis"
+            import re
+            safe_username = re.sub(r'[^\w\-_.]', '_', username)
+            
+            default_filename = f"blackbird_ai_{safe_username}_{timestamp}.txt"
+            
+            # Ask user where to save
+            file_name, _ = QFileDialog.getSaveFileName(
+                self, 
+                "Save AI Analysis Results", 
+                default_filename,
+                "Text Files (*.txt);;All Files (*)"
+            )
+            
+            if file_name:
+                # Ensure .txt extension
+                if not file_name.endswith('.txt'):
+                    file_name += '.txt'
+                
+                # Save to file
+                with open(file_name, 'w', encoding='utf-8') as f:
+                    f.write('\n'.join(self.ai_results_buffer))
+                
+                # Notify user
+                self.append_to_output_area(f"💾 AI results saved to: {file_name}")
+            else:
+                self.append_to_output_area("💾 AI results not saved (user cancelled)")
+                
+        except Exception as e:
+            self.append_to_output_area(f"❌ Error saving AI results: {e}")
+
+    def append_to_output_area(self, text):
+        """Helper method to append text to output area with auto-scroll"""
         scrollbar = self.output_area.verticalScrollBar()
         was_at_bottom = scrollbar.value() == scrollbar.maximum()
-
+        
         self.output_area.append(text)
-
+        
         if was_at_bottom:
-            scrollbar.setValue(scrollbar.maximum())  # Auto-scroll to the bottom
+            scrollbar.setValue(scrollbar.maximum())
 
     def on_worker_finished(self):
         # Re-enable the Run button and disable the Stop button when worker finishes
