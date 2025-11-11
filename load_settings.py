@@ -1,6 +1,7 @@
 # load_settings.py
 
 import json
+import os
 from PyQt6.QtWidgets import QFileDialog
 
 def load_settings(gui_instance):
@@ -36,3 +37,8 @@ def load_settings(gui_instance):
         for key, (set_method, value_type) in setting_mappings.items():
             if key in settings:
                 set_method(value_type(settings[key]))
+
+        # Special handling for ai_api_key
+        if "ai_api_key" in settings and settings["ai_api_key"]:
+            gui_instance.ai_api_key = settings["ai_api_key"]
+            os.environ["BLACKBIRD_AI_API_KEY"] = settings["ai_api_key"]

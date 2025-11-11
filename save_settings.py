@@ -29,7 +29,8 @@ def save_settings(gui_instance):
             "dump_checkbox": gui_instance.dump_checkbox.isChecked(),
             "instagram_session_id": gui_instance.instagram_session_id.text(),
             "AI_checkbox": gui_instance.AI_checkbox.isChecked(),
-            "filter": gui_instance.filter_input.text()
+            "filter": gui_instance.filter_input.text(),
+            "ai_api_key": getattr(gui_instance, 'ai_api_key', '')  # Save API key if it exists
         }
 
         # Save the settings to the file with proper JSON format

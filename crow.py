@@ -5,7 +5,7 @@ import json
 import requests
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                              QLabel, QLineEdit, QPushButton, QTextEdit, QFileDialog, 
-                             QCheckBox, QGroupBox, QFormLayout, QSpinBox, QMessageBox)
+                             QCheckBox, QGroupBox, QFormLayout, QSpinBox, QMessageBox, QInputDialog)
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
     # Import the separate save and load functions
 from save_settings import save_settings
@@ -16,11 +16,12 @@ from build_blackbird_command import build_blackbird_command
 class BlackbirdWorker(QThread):
     output_signal = pyqtSignal(str)
 
-    def __init__(self, command, needs_ai_confirmation=False):
+    def __init__(self, command, needs_ai_confirmation=False, is_setup_ai=False):
         super().__init__()
         self.command = command
         self.process = None
         self.needs_ai_confirmation = needs_ai_confirmation
+        self.is_setup_ai = is_setup_ai
 
     def run(self):
         # Use Popen with stdin to handle interactive prompts
@@ -30,23 +31,45 @@ class BlackbirdWorker(QThread):
             stderr=subprocess.STDOUT, 
             stdin=subprocess.PIPE,
             text=True, 
-            shell=True
+            shell=True,
+            bufsize=1
         )
         
-        # If AI is enabled, automatically respond 'Y' to the consent prompt
-        if self.needs_ai_confirmation:
+        # For setup-ai, send confirmation immediately
+        if self.is_setup_ai:
             try:
-                # Wait a moment for the prompt to appear, then send 'Y'
+                # Wait a bit for the prompt to appear
                 import time
-                time.sleep(1)
+                time.sleep(2)
+                # Send 'Y' and newline
                 self.process.stdin.write('Y\n')
                 self.process.stdin.flush()
+                self.output_signal.emit("✓ Sent confirmation for API key setup")
             except Exception as e:
-                self.output_signal.emit(f"AI confirmation error: {e}")
+                self.output_signal.emit(f"Setup confirmation error: {e}")
         
-        # Read output line by line
+        # For regular AI analysis, wait for the specific prompt
+        elif self.needs_ai_confirmation:
+            confirmation_sent = False
+            for line in self.process.stdout:
+                text = line.strip()
+                self.output_signal.emit(text)
+                
+                # Check for AI analysis prompt
+                if not confirmation_sent and ('analyzing with ai' in text.lower() or 'consent' in text.lower()):
+                    try:
+                        self.process.stdin.write('Y\n')
+                        self.process.stdin.flush()
+                        confirmation_sent = True
+                        self.output_signal.emit("✓ Automatically confirmed AI analysis")
+                    except Exception as e:
+                        self.output_signal.emit(f"AI confirmation error: {e}")
+            return
+        
+        # Read output line by line for non-AI or after confirmation
         for line in self.process.stdout:
             self.output_signal.emit(line.strip())
+        
         self.process.stdout.close()
         self.process.wait()
 
@@ -124,6 +147,12 @@ class BlackbirdGUI(QMainWindow):
         AI_layout = QHBoxLayout()
         self.AI_checkbox = QCheckBox("Extract metadata AI")
         AI_layout.addWidget(self.AI_checkbox)
+
+        # Add setup button for AI API key
+        AI_setup_button = QPushButton("Setup API Key")
+        AI_setup_button.clicked.connect(self.setup_ai_api_key)
+        AI_layout.addWidget(AI_setup_button)
+
         AI_help_button = QPushButton("?")
         AI_help_button.setFixedSize(30, 30)
         AI_help_button.clicked.connect(self.show_AI_help)
@@ -254,6 +283,64 @@ class BlackbirdGUI(QMainWindow):
         self.key_sequence = ""
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
+    def setup_ai_api_key(self):
+        """Configure AI API key through GUI by running --setup-ai"""
+        self.output_area.clear()
+        self.output_area.append("🔧 Starting AI API Key setup...")
+        self.output_area.append("This will automatically confirm the IP registration prompt...")
+        
+        # Build the setup command
+        command = ["python", "blackbird.py", "--setup-ai"]
+        
+        # Create and start the worker for setup
+        self.worker = BlackbirdWorker(" ".join(command), is_setup_ai=True)
+        self.worker.output_signal.connect(self.update_output)
+        self.worker.finished.connect(self.on_setup_finished)
+        self.worker.start()
+        
+        self.run_button.setEnabled(False)
+        self.stop_button.setEnabled(True)
+
+    def on_setup_finished(self):
+        """Handle completion of AI setup"""
+        self.run_button.setEnabled(True)
+        self.stop_button.setEnabled(False)
+        
+        # Check if setup was successful by looking for the API key
+        import os
+        import json
+        import os.path
+        
+        api_key_found = False
+        config_paths = [
+            os.path.expanduser("~/.ai_key.json"),
+            ".ai_key.json"
+        ]
+        
+        for config_path in config_paths:
+            if os.path.exists(config_path):
+                try:
+                    with open(config_path, 'r') as f:
+                        config = json.load(f)
+                        if config.get("ai_api_key"):
+                            api_key_found = True
+                            self.ai_api_key = config["ai_api_key"]
+                            os.environ["BLACKBIRD_AI_API_KEY"] = config["ai_api_key"]
+                            self.output_area.append("✅ AI API Key setup completed and loaded!")
+                            break
+                        elif config.get("api_key"):
+                            api_key_found = True
+                            self.ai_api_key = config["api_key"]
+                            os.environ["BLACKBIRD_AI_API_KEY"] = config["api_key"]
+                            self.output_area.append("✅ AI API Key setup completed and loaded!")
+                            break
+                except (json.JSONDecodeError, KeyError):
+                    continue
+        
+        if not api_key_found:
+            self.output_area.append("⚠️  API key setup completed, but couldn't automatically detect the key.")
+            self.output_area.append("You may need to manually enter the API key using the 'Setup API Key' button.")
+
     def keyPressEvent(self, event):
         super().keyPressEvent(event)
         self.key_sequence += event.text()
@@ -356,7 +443,6 @@ Crows mimic, crows are intelligent!
                                 "balestek86, _balestek86, balestek86_, balestek_86, balestek-86, balestek.86,\n"
                                 "86balestek, _86balestek, 86balestek_, 86_balestek, 86-balestek, 86.balestek")
 
-    # In crow.py - update the show_AI_help method
     def show_AI_help(self):
         QMessageBox.information(self, "AI Metadata Help",
                                "The '--ai' option performs AI analysis on found results.\n\n"
@@ -374,8 +460,59 @@ Crows mimic, crows are intelligent!
                                "- Relevant tags\n\n"
                                "Note: Uses Blackbird AI API with daily query limits.")
 
-
     def run_blackbird(self):
+        # Check if AI is enabled but no API key is set
+        if self.AI_checkbox.isChecked():
+            import os
+            import json
+            import os.path
+            
+            # Check multiple locations for API key
+            api_key_found = False
+            
+            # 1. Check environment variable
+            if os.environ.get("BLACKBIRD_AI_API_KEY"):
+                api_key_found = True
+            
+            # 2. Check Blackbird config file
+            if not api_key_found:
+                config_paths = [
+                    os.path.expanduser("~/.blackbird/config.json"),
+                    os.path.expanduser("~/.config/blackbird/config.json"),
+                    "config.json",  # Current directory
+                    "blackbird_config.json"  # Current directory
+                ]
+                
+                for config_path in config_paths:
+                    if os.path.exists(config_path):
+                        try:
+                            with open(config_path, 'r') as f:
+                                config = json.load(f)
+                                if config.get("ai_api_key") or config.get("api_key"):
+                                    api_key_found = True
+                                    break
+                        except (json.JSONDecodeError, KeyError):
+                            continue
+            
+            # 3. Check if we have a stored API key in the GUI instance
+            if not api_key_found and hasattr(self, 'ai_api_key') and self.ai_api_key:
+                api_key_found = True
+            
+            if not api_key_found:
+                reply = QMessageBox.question(
+                    self, 
+                    "AI API Key Required",
+                    "AI analysis requires an API key. Would you like to configure it now?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                )
+                if reply == QMessageBox.StandardButton.Yes:
+                    self.setup_ai_api_key()
+                    return  # Don't proceed with regular search until setup is complete
+                else:
+                    QMessageBox.warning(self, "Warning", "AI analysis disabled - no API key configured.")
+                    self.AI_checkbox.setChecked(False)
+        
+        # Rest of the existing run_blackbird method...
         if self.worker and self.worker.isRunning():
             self.worker.terminate()
             self.worker.wait()
@@ -405,7 +542,7 @@ Crows mimic, crows are intelligent!
             self.output_area.append("🤖 AI Analysis Enabled")
             self.output_area.append("Note: This will analyze results using Blackbird AI")
             self.output_area.append("")
-            
+
         command = build_blackbird_command(username_input, email_input, username_file_input, 
                                           email_file_input, permute_checkbox, permuteall_checkbox, 
                                           AI_checkbox, no_nsfw_checkbox, no_update_checkbox, 
