@@ -431,7 +431,6 @@ Crows mimic, crows are intelligent!
         self.run_button.setEnabled(True)  # Re-enable Run button
         self.stop_button.setEnabled(False)  # Disable Stop button
 
-    # Enhanced version with file dialog option
     def update_output(self, text):
         # Initialize AI results buffer if it doesn't exist
         if not hasattr(self, 'ai_results_buffer'):
@@ -473,7 +472,7 @@ Crows mimic, crows are intelligent!
                     f"Analysis complete - {self.get_current_timestamp()}",
                     "=" * 60
                 ])
-                self.save_ai_results_with_dialog()
+                self.auto_save_ai_results()  # Auto-save instead of dialog
                 self.ai_results_started = False
         
         # Format for GUI display
@@ -504,46 +503,42 @@ Crows mimic, crows are intelligent!
         from datetime import datetime
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    def save_ai_results_with_dialog(self):
-        """Save AI results with option to choose location"""
+    def auto_save_ai_results(self):
+        """Automatically save AI results to file"""
         if not self.ai_results_buffer:
             return
         
         try:
-            # Generate default filename
+            # Generate filename with timestamp and target info
             from datetime import datetime
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             
-            username = self.username_input.text().strip() or "analysis"
-            import re
-            safe_username = re.sub(r'[^\w\-_.]', '_', username)
+            username = self.username_input.text().strip()
+            email = self.email_input.text().strip()
             
-            default_filename = f"blackbird_ai_{safe_username}_{timestamp}.txt"
-            
-            # Ask user where to save
-            file_name, _ = QFileDialog.getSaveFileName(
-                self, 
-                "Save AI Analysis Results", 
-                default_filename,
-                "Text Files (*.txt);;All Files (*)"
-            )
-            
-            if file_name:
-                # Ensure .txt extension
-                if not file_name.endswith('.txt'):
-                    file_name += '.txt'
-                
-                # Save to file
-                with open(file_name, 'w', encoding='utf-8') as f:
-                    f.write('\n'.join(self.ai_results_buffer))
-                
-                # Notify user
-                self.append_to_output_area(f"💾 AI results saved to: {file_name}")
+            # Create descriptive filename
+            if username:
+                base_name = username
+            elif email:
+                base_name = email.split('@')[0]  # Use part before @ for filename
             else:
-                self.append_to_output_area("💾 AI results not saved (user cancelled)")
-                
+                base_name = "analysis"
+            
+            # Clean filename
+            import re
+            safe_name = re.sub(r'[^\w\-_.]', '_', base_name)
+            
+            filename = f"blackbird_ai_{safe_name}_{timestamp}.txt"
+            
+            # Save to file
+            with open(filename, 'w', encoding='utf-8') as f:
+                f.write('\n'.join(self.ai_results_buffer))
+            
+            # Notify user
+            self.append_to_output_area(f"💾 AI results auto-saved to: {filename}")
+            
         except Exception as e:
-            self.append_to_output_area(f"❌ Error saving AI results: {e}")
+            self.append_to_output_area(f"❌ Error auto-saving AI results: {e}")
 
     def append_to_output_area(self, text):
         """Helper method to append text to output area with auto-scroll"""
