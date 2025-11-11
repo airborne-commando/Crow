@@ -13,7 +13,6 @@ def save_settings(gui_instance):
 
         # Collect the current settings into a dictionary
         settings = {
-            "hudson_email_input": gui_instance.hudson_email_input.text(),
             "username_input": gui_instance.username_input.text(),
             "email_input": gui_instance.email_input.text(),
             "permute_checkbox": gui_instance.permute_checkbox.isChecked(),

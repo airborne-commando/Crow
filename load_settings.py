@@ -14,7 +14,6 @@ def load_settings(gui_instance):
 
         # Define a mapping of setting keys to widget methods and types
         setting_mappings = {
-            "hudson_email_input": (gui_instance.hudson_email_input.setText, str),
             "username_input": (gui_instance.username_input.setText, str),
             "email_input": (gui_instance.email_input.setText, str),
             "permute_checkbox": (gui_instance.permute_checkbox.setChecked, bool),

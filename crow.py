@@ -95,21 +95,6 @@ class BlackbirdGUI(QMainWindow):
         layout = QVBoxLayout()
         central_widget.setLayout(layout)
 
-        # Adding Hudson Rock section for email/username search
-        hudson_group = QGroupBox("Hudson Rock Search")
-        hudson_layout = QVBoxLayout()
-        
-        self.hudson_email_input = QLineEdit()
-        hudson_layout.addWidget(QLabel("Email to Search:"))
-        hudson_layout.addWidget(self.hudson_email_input)
-
-        self.hudson_search_button = QPushButton("Search Hudson Rock")
-        self.hudson_search_button.clicked.connect(self.search_hudson_rock)
-        hudson_layout.addWidget(self.hudson_search_button)
-
-        hudson_group.setLayout(hudson_layout)
-        layout.addWidget(hudson_group)
-
         # Input Group: For entering usernames, emails, and file selection
         input_group = QGroupBox("Blackbird Search")
         input_layout = QFormLayout()
@@ -374,10 +359,6 @@ Crows mimic, crows are intelligent!
     def search_hudson_rock(self):
         self.output_area.clear()
         query = self.hudson_email_input.text().strip()
-
-        if not query:
-            self.update_output("Please enter an email to search.\n")
-            return
 
         # We assume the query could be either an email or username, so we check it
         if "@" in query:
