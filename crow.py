@@ -11,20 +11,28 @@ from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from save_settings import save_settings
 from load_settings import load_settings
 from build_blackbird_command import build_blackbird_command
-
+from tor_spoofing import TORSpoofer
+from tor_api_setup import TORAPISetup
 # Worker class that handles executing the Blackbird command in a separate thread
 class BlackbirdWorker(QThread):
     output_signal = pyqtSignal(str)
-
-    def __init__(self, command, needs_ai_confirmation=False, is_setup_ai=False):
+    
+    def __init__(self, command, needs_ai_confirmation=False, is_setup_ai=False, tor_spoofer=None):
         super().__init__()
         self.command = command
         self.process = None
         self.needs_ai_confirmation = needs_ai_confirmation
         self.is_setup_ai = is_setup_ai
-
+        self.tor_spoofer = tor_spoofer
+    
     def run(self):
-        # Use Popen with stdin to handle interactive prompts
+        # If TOR is enabled for AI, set environment variable to signal the blackbird.py
+        # to use TOR for AI requests
+        if self.tor_spoofer and self.tor_spoofer.tor_enabled:
+            # Set environment variable that blackbird.py can check
+            import os
+            os.environ["BLACKBIRD_USE_TOR"] = "1"
+            os.environ["TOR_PORT"] = str(self.tor_spoofer.tor_port)
         self.process = subprocess.Popen(
             self.command, 
             stdout=subprocess.PIPE, 
@@ -143,6 +151,10 @@ class BlackbirdGUI(QMainWindow):
         AI_help_button.clicked.connect(self.show_AI_help)
         AI_layout.addWidget(AI_help_button)
         options_layout.addLayout(AI_layout)
+        
+        # TOR Spoofing setup - ADD THIS RIGHT AFTER AI LAYOUT
+        self.tor_spoofer = TORSpoofer(self)
+        self.setup_tor_ui(options_layout)  # Pass the options_layout to the method
         
         # Permute username checkbox with help button on the right
         permute_layout = QHBoxLayout()
@@ -269,10 +281,58 @@ class BlackbirdGUI(QMainWindow):
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
     def setup_ai_api_key(self):
-        """Configure AI API key through GUI by running --setup-ai"""
+        """Configure AI API key through TOR for anonymous registration"""
         self.output_area.clear()
-        self.output_area.append("🔧 Starting AI API Key setup...")
-        self.output_area.append("This will automatically confirm the IP registration prompt...")
+        self.output_area.append("🔧 Starting anonymous API Key setup through TOR...")
+        self.output_area.append("This will register your TOR IP instead of your real IP")
+        
+        # Check if TOR is available
+        if hasattr(self, 'tor_spoofer') and self.tor_spoofer.tor_enabled:
+            # Use existing TOR connection
+            tor_port = self.tor_spoofer.tor_port
+            control_port = self.tor_spoofer.control_port
+            tor_password = self.tor_spoofer.tor_password
+        else:
+            # Try to setup TOR with default settings
+            tor_port = 9050
+            control_port = 9051
+            tor_password = None
+            
+            # Test TOR connection
+            temp_spoofer = TORSpoofer(self)
+            if not temp_spoofer.enable_tor_for_ai():
+                self.output_area.append("❌ TOR not available for anonymous setup")
+                self.output_area.append("Please ensure TOR is running, or continue with direct connection")
+                
+                reply = QMessageBox.question(
+                    self,
+                    "TOR Not Available",
+                    "TOR is required for anonymous IP registration.\n\n"
+                    "Without TOR, your real IP will be registered with Blackbird AI.\n\n"
+                    "Do you want to continue with direct connection?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                )
+                
+                if reply == QMessageBox.StandardButton.Yes:
+                    self.setup_ai_api_key_direct()
+                return
+            else:
+                tor_port = temp_spoofer.tor_port
+                control_port = temp_spoofer.control_port
+                tor_password = temp_spoofer.tor_password
+        
+        # Start TOR setup
+        self.tor_setup_worker = TORAPISetup(tor_port, control_port, tor_password)
+        self.tor_setup_worker.output_signal.connect(self.update_output)
+        self.tor_setup_worker.finished_signal.connect(self.on_tor_setup_finished)
+        self.tor_setup_worker.start()
+        
+        self.run_button.setEnabled(False)
+        self.stop_button.setEnabled(True)
+
+    def setup_ai_api_key_direct(self):
+        """Fallback direct setup without TOR"""
+        self.output_area.append("🔄 Starting direct API setup (without TOR)...")
         
         # Build the setup command
         command = ["python", "blackbird.py", "--setup-ai"]
@@ -286,15 +346,32 @@ class BlackbirdGUI(QMainWindow):
         self.run_button.setEnabled(False)
         self.stop_button.setEnabled(True)
 
-    def on_setup_finished(self):
-        """Handle completion of AI setup"""
+    def on_tor_setup_finished(self, success):
+        """Handle completion of TOR API setup"""
         self.run_button.setEnabled(True)
         self.stop_button.setEnabled(False)
         
-        # Check if setup was successful by looking for the API key
+        if success:
+            self.output_area.append("✅ Anonymous API setup completed through TOR!")
+            self.check_api_key_config()
+        else:
+            self.output_area.append("❌ TOR setup failed")
+            
+            reply = QMessageBox.question(
+                self,
+                "TOR Setup Failed",
+                "Anonymous setup through TOR failed.\n\n"
+                "Do you want to try direct setup?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            
+            if reply == QMessageBox.StandardButton.Yes:
+                self.setup_ai_api_key_direct()
+
+    def check_api_key_config(self):
+        """Check if API key was successfully configured"""
         import os
         import json
-        import os.path
         
         api_key_found = False
         config_paths = [
@@ -311,20 +388,60 @@ class BlackbirdGUI(QMainWindow):
                             api_key_found = True
                             self.ai_api_key = config["ai_api_key"]
                             os.environ["BLACKBIRD_AI_API_KEY"] = config["ai_api_key"]
-                            self.output_area.append("✅ AI API Key setup completed and loaded!")
+                            self.output_area.append("✅ AI API Key configured and loaded!")
                             break
                         elif config.get("api_key"):
                             api_key_found = True
                             self.ai_api_key = config["api_key"]
                             os.environ["BLACKBIRD_AI_API_KEY"] = config["api_key"]
-                            self.output_area.append("✅ AI API Key setup completed and loaded!")
+                            self.output_area.append("✅ AI API Key configured and loaded!")
                             break
                 except (json.JSONDecodeError, KeyError):
                     continue
         
         if not api_key_found:
             self.output_area.append("⚠️  API key setup completed, but couldn't automatically detect the key.")
-            self.output_area.append("You may need to manually enter the API key using the 'Setup API Key' button.")
+            self.output_area.append("You may need to manually check the configuration.")
+
+        def on_setup_finished(self):
+            """Handle completion of AI setup"""
+            self.run_button.setEnabled(True)
+            self.stop_button.setEnabled(False)
+            
+            # Check if setup was successful by looking for the API key
+            import os
+            import json
+            import os.path
+            
+            api_key_found = False
+            config_paths = [
+                os.path.expanduser("~/.ai_key.json"),
+                ".ai_key.json"
+            ]
+            
+            for config_path in config_paths:
+                if os.path.exists(config_path):
+                    try:
+                        with open(config_path, 'r') as f:
+                            config = json.load(f)
+                            if config.get("ai_api_key"):
+                                api_key_found = True
+                                self.ai_api_key = config["ai_api_key"]
+                                os.environ["BLACKBIRD_AI_API_KEY"] = config["ai_api_key"]
+                                self.output_area.append("✅ AI API Key setup completed and loaded!")
+                                break
+                            elif config.get("api_key"):
+                                api_key_found = True
+                                self.ai_api_key = config["api_key"]
+                                os.environ["BLACKBIRD_AI_API_KEY"] = config["api_key"]
+                                self.output_area.append("✅ AI API Key setup completed and loaded!")
+                                break
+                    except (json.JSONDecodeError, KeyError):
+                        continue
+            
+            if not api_key_found:
+                self.output_area.append("⚠️  API key setup completed, but couldn't automatically detect the key.")
+                self.output_area.append("You may need to manually enter the API key using the 'Setup API Key' button.")
 
     def keyPressEvent(self, event):
         super().keyPressEvent(event)
@@ -440,10 +557,120 @@ Crows mimic, crows are intelligent!
                                "- Risk flags and warnings\n"
                                "- Relevant tags\n\n"
                                "Note: Uses Blackbird AI API with daily query limits.")
+    
+    def setup_tor_ui(self, options_layout):
+        """Add TOR configuration to the options group"""
+        # Add TOR section to options group
+        tor_group = QGroupBox("TOR IP Spoofing (for AI)")
+        tor_layout = QHBoxLayout()
+        
+        self.tor_checkbox = QCheckBox("Enable TOR for AI requests")
+        self.tor_checkbox.stateChanged.connect(self.toggle_tor_spoofing)
+        tor_layout.addWidget(self.tor_checkbox)
+        
+        tor_setup_button = QPushButton("TOR Settings")
+        tor_setup_button.clicked.connect(self.configure_tor_settings)
+        tor_layout.addWidget(tor_setup_button)
+        
+        tor_help_button = QPushButton("?")
+        tor_help_button.setFixedSize(30, 30)
+        tor_help_button.clicked.connect(self.show_tor_help)
+        tor_layout.addWidget(tor_help_button)
+        
+        tor_group.setLayout(tor_layout)
+        
+        # Insert TOR group after AI options but before permute options
+        # We need to find the correct position in the layout
+        # Since we're calling this during setup, we can add it directly
+        options_layout.addWidget(tor_group)
+    
+    def toggle_tor_spoofing(self, state):
+        """Enable/disable TOR spoofing"""
+        if state == Qt.CheckState.Checked.value:
+            # Try to enable TOR with default settings
+            if not self.tor_spoofer.enable_tor_for_ai():
+                QMessageBox.warning(self, "TOR Not Available", 
+                                  "TOR connection failed. Please ensure TOR is running and configured.")
+                self.tor_checkbox.setChecked(False)
+        else:
+            self.tor_spoofer.disable_tor()
+    
+    def configure_tor_settings(self):
+        """Open dialog to configure TOR settings"""
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QFormLayout, QLineEdit, QDialogButtonBox, QLabel
+        
+        dialog = QDialog(self)
+        dialog.setWindowTitle("TOR Configuration")
+        layout = QVBoxLayout()
+        
+        form_layout = QFormLayout()
+        
+        tor_port_input = QLineEdit(str(self.tor_spoofer.tor_port))
+        control_port_input = QLineEdit(str(self.tor_spoofer.control_port))
+        
+        # Show current password (masked) but don't allow changing in this version
+        password_info = QLabel(f"Current password: {'*' * 20} (hardcoded for testing)")
+        password_info.setWordWrap(True)
+        
+        form_layout.addRow("TOR Port:", tor_port_input)
+        form_layout.addRow("Control Port:", control_port_input)
+        form_layout.addRow("Password:", password_info)
+        
+        help_label = QLabel("Note: Using hardcoded password for testing. Port changes will be applied.")
+        help_label.setWordWrap(True)
+        form_layout.addRow("", help_label)
+        
+        layout.addLayout(form_layout)
+        
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | 
+                                 QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+        
+        dialog.setLayout(layout)
+        
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            try:
+                self.tor_spoofer.tor_port = int(tor_port_input.text())
+                self.tor_spoofer.control_port = int(control_port_input.text())
+                
+                # Test new configuration
+                if self.tor_checkbox.isChecked():
+                    if not self.tor_spoofer.enable_tor_for_ai():
+                        QMessageBox.warning(self, "TOR Configuration Failed", 
+                                          "New TOR settings are invalid.")
+                        self.tor_checkbox.setChecked(False)
+                    else:
+                        QMessageBox.information(self, "Success", "TOR configuration updated successfully!")
+                            
+            except ValueError:
+                QMessageBox.warning(self, "Invalid Input", "Port numbers must be integers.")
+    
+    def show_tor_help(self):
+        """Show TOR help information"""
+        QMessageBox.information(self, "TOR IP Spoofing Help",
+                              "TOR IP Spoofing for AI Requests:\n\n"
+                              "• Routes AI API calls through TOR network\n"
+                              "• Automatically renews IP for each request\n"
+                              "• Enhances privacy and anonymity\n"
+                              "• Bypasses IP-based rate limits\n\n"
+                              "Requirements:\n"
+                              "• TOR service must be running locally\n"
+                              "• Default ports: 9050 (TOR), 9051 (control)\n"
+                              "• TOR control protocol enabled\n\n"
+                              "Note: This only affects AI metadata extraction requests.")
+
 
     def run_blackbird(self):
         # Check if AI is enabled but no API key is set
         if self.AI_checkbox.isChecked():
+            # If TOR is also enabled, set it up
+            if hasattr(self, 'tor_checkbox') and self.tor_checkbox.isChecked():
+                if not self.tor_spoofer.tor_enabled:
+                    if not self.tor_spoofer.enable_tor_for_ai():
+                        self.output_area.append("⚠️  TOR spoofing failed, continuing with direct connection")
+            
             import os
             import json
             import os.path
@@ -458,10 +685,8 @@ Crows mimic, crows are intelligent!
             # 2. Check Blackbird config file
             if not api_key_found:
                 config_paths = [
-                    os.path.expanduser("~/.blackbird/config.json"),
-                    os.path.expanduser("~/.config/blackbird/config.json"),
-                    "config.json",  # Current directory
-                    "blackbird_config.json"  # Current directory
+                    os.path.expanduser(".ai_key.json"),
+                    ".ai_key.json",  # Current directory
                 ]
                 
                 for config_path in config_paths:
