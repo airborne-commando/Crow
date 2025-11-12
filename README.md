@@ -17,7 +17,7 @@ A PyQt6-based graphical user interface for the Blackbird OSINT tool, providing a
 
 ### Prerequisites
 
-1. Python 3.11 or higher
+1. Python 3 or higher
 2. Blackbird OSINT tool (must be in the same directory)
 3. Required Python packages:
 
@@ -56,6 +56,11 @@ In one command:
 
     git clone https://github.com/p1ngul1n0/blackbird.git && git clone https://github.com/airborne-commando/crow.git && mv crow/*.txt ./blackbird/ && mv crow/*.py ./blackbird/ && cd ./blackbird/ && python3.12 -m venv venv && source venv/bin/activate && pip3 install -r requirements.txt && pip3 install -r requirements_GUI.txt
 
+
+### For the dev-tor:
+
+      git clone https://github.com/p1ngul1n0/blackbird.git && git clone --branch dev-tor --single-branch https://github.com/airborne-commando/crow.git && mv crow/*.txt ./blackbird/ && mv crow/*.py ./blackbird/ && cd ./blackbird/ && python3 -m venv venv && source venv/bin/activate && pip3 install -r requirements.txt && pip3 install -r requirements_GUI.txt
+
 ### File Structure
 
 Ensure the following files are in your working directory:
@@ -66,8 +71,47 @@ project/
 ├── build_blackbird_command.py  # Command builder utility
 ├── save_settings.py        # Settings save functionality
 ├── load_settings.py        # Settings load functionality
+├── requirements_GUI.txt # GUI requirements
+├── tor_api_setup.py # Tor functions
+├── tor_hook.py
+├── tor_spoofing.py
 └── blackbird.py           # Blackbird OSINT tool (required)
 ```
+
+### Tor Usage:
+
+Can Bypass daily limits on AI summary, but the password is hard coded, you'll need to edit this value inside tor_spoofing.py:
+
+      class TORSpoofer:
+          def __init__(self, gui_instance=None):
+              self.gui_instance = gui_instance
+              self.tor_enabled = False
+              self.tor_session = None
+              self.tor_port = 9050  # Default TOR port
+              self.control_port = 9051  # Default control port
+              self.tor_password = "hashbrownyummy"  # ← SET YOUR PASSWORD HERE
+
+you'll need to also install tor inside your system and do the following.
+
+### Password gen example
+
+      tor --hash-password hashbrownyummy
+
+New value of hashbrownyummy
+
+      16:173F2CE915F54E88606A84E39D3750633B34E57F384910306004433BE9
+
+Then edit, uncomment HashedControlPassword and ControlPort:
+
+**sudo nano /etc/tor/torrc**
+
+      #ControlPort 9051
+      ## If you enable the controlport, be sure to enable one of these
+      ## authentication methods, to prevent attackers from accessing it.
+      #HashedControlPassword 16:173F2CE915F54E88606A84E39D3750633B34E57F384910306004433BE9
+      #CookieAuthentication 1
+
+Restart the tor service with **sudo systemctl restart tor**
 
 ## Usage
 

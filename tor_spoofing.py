@@ -15,7 +15,7 @@ class TORSpoofer:
         self.tor_session = None
         self.tor_port = 9050  # Default TOR port
         self.control_port = 9051  # Default control port
-        self.tor_password = "dkdkwedkowea[kdwaokdowakkdowokd"  # ← SET YOUR PASSWORD HERE
+        self.tor_password = " "  # ← SET YOUR PASSWORD HERE
     
     def log_message(self, message):
         """Log messages to GUI output area if available"""
