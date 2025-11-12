@@ -17,13 +17,44 @@ A PyQt6-based graphical user interface for the Blackbird OSINT tool, providing a
 
 ### Prerequisites
 
-1. Python 3.7 or higher
+1. Python 3.11 or higher
 2. Blackbird OSINT tool (must be in the same directory)
 3. Required Python packages:
 
 ```
-pip install PyQt6 requests
+pip install -r requirements_GUI.txt
 ```
+
+## Python
+
+### Arch users
+
+### Python 311
+
+```
+yay -S python311
+```
+
+### Python 312
+
+```
+yay -S python312
+```
+
+### Installs:
+
+In one command:
+
+    git clone https://github.com/p1ngul1n0/blackbird.git && git clone https://github.com/airborne-commando/crow.git && mv crow/*.txt ./blackbird/ && mv crow/*.py ./blackbird/ && cd ./blackbird/ && python3 -m venv venv && source venv/bin/activate && pip3 install -r requirements.txt && pip3 install -r requirements_GUI.txt
+
+
+### python311
+
+    git clone https://github.com/p1ngul1n0/blackbird.git && git clone https://github.com/airborne-commando/crow.git && mv crow/*.txt ./blackbird/ && mv crow/*.py ./blackbird/ && cd ./blackbird/ && python3.11 -m venv venv && source venv/bin/activate && pip3 install -r requirements.txt && pip3 install -r requirements_GUI.txt
+
+### python312
+
+    git clone https://github.com/p1ngul1n0/blackbird.git && git clone https://github.com/airborne-commando/crow.git && mv crow/*.txt ./blackbird/ && mv crow/*.py ./blackbird/ && cd ./blackbird/ && python3.12 -m venv venv && source venv/bin/activate && pip3 install -r requirements.txt && pip3 install -r requirements_GUI.txt
 
 ### File Structure
 
