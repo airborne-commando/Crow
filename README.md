@@ -82,14 +82,32 @@ project/
 
 Can Bypass daily limits on AI summary, but the password is hard coded, you'll need to edit this value inside tor_spoofing.py:
 
-      class TORSpoofer:
-          def __init__(self, gui_instance=None):
-              self.gui_instance = gui_instance
-              self.tor_enabled = False
-              self.tor_session = None
-              self.tor_port = 9050  # Default TOR port
-              self.control_port = 9051  # Default control port
-              self.tor_password = "hashbrownyummy"  # ← SET YOUR PASSWORD HERE
+## Edit these values
+
+        class TORSpoofer:
+            def __init__(self, gui_instance=None):
+                self.gui_instance = gui_instance
+                self.tor_enabled = False
+                self.tor_session = None
+                self.tor_port = 9050  # Default TOR port
+                self.control_port = 9051  # Default control port
+                self.tor_password = "hashbrownyummy"  # ← SET YOUR PASSWORD HERE
+
+        .....
+
+            def renew_tor_connection(self):
+                """Renew TOR circuit using raw socket authentication"""
+                try:
+                    import socket
+                    
+                    # Use raw socket connection instead of stem Controller
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    sock.connect(('127.0.0.1', self.control_port))
+                    
+                    # Authenticate
+                    auth_cmd = f'AUTHENTICATE "hashbrownyummy"\r\n' # Edit this as well with plaintext
+                    sock.send(auth_cmd.encode())
+                    response = sock.recv(1024).decode()
 
 you'll need to also install tor inside your system and do the following.
 
