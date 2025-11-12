@@ -1,3 +1,4 @@
-PyQt6 
+PySocks 
 requests 
-stem
+stem 
+PyQt6
