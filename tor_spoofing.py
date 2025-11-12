@@ -56,7 +56,7 @@ class TORSpoofer:
             sock.connect(('127.0.0.1', self.control_port))
             
             # Authenticate
-            auth_cmd = f'AUTHENTICATE "dkdkwedkowea[kdwaokdowakkdowokd"\r\n'
+            auth_cmd = f'AUTHENTICATE " "\r\n' # Edit this as well with plaintext
             sock.send(auth_cmd.encode())
             response = sock.recv(1024).decode()
             
