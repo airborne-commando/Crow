@@ -113,6 +113,8 @@ Then edit, uncomment HashedControlPassword and ControlPort:
 
 Restart the tor service with **sudo systemctl restart tor**
 
+Be sure to enable and start
+
 ## Usage
 
 ### Basic Operation
