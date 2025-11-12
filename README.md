@@ -1,6 +1,41 @@
-# Crow - Blackbird GUI Frontend
+# Crow
+A gui Edition of the OSINT tool blackbird.
 
-A PyQt6-based graphical user interface for the Blackbird OSINT tool, providing an intuitive way to conduct username and email investigations across multiple platforms.
+To install simply clone [blackbirds repo](https://github.com/p1ngul1n0/blackbird.git) from here you may install crow by [cloning it](https://github.com/airborne-commando/crow.git) or downloading the files from this repo and placing them inside blackbirds root directory. Can also check the releases page; will list some fixes there.
+
+In one command:
+
+    git clone https://github.com/p1ngul1n0/blackbird.git && git clone https://github.com/airborne-commando/crow.git && mv crow/*.txt ./blackbird/ && mv crow/*.py ./blackbird/ && cd ./blackbird/ && python3 -m venv venv && source venv/bin/activate && pip3 install -r requirements.txt && pip3 install -r requirements_GUI.txt
+
+Having issues with the install on arch?
+
+Assuming you have [yay](https://github.com/Jguer/yay) installed.
+    
+    yay -S python311
+
+Or for python 3.12
+
+    yay -S python312
+
+python311
+
+    git clone https://github.com/p1ngul1n0/blackbird.git && git clone https://github.com/airborne-commando/crow.git && mv crow/*.txt ./blackbird/ && mv crow/*.py ./blackbird/ && cd ./blackbird/ && python3.11 -m venv venv && source venv/bin/activate && pip3 install -r requirements.txt && pip3 install -r requirements_GUI.txt
+
+
+
+python312
+
+    git clone https://github.com/p1ngul1n0/blackbird.git && git clone https://github.com/airborne-commando/crow.git && mv crow/*.txt ./blackbird/ && mv crow/*.py ./blackbird/ && cd ./blackbird/ && python3.12 -m venv venv && source venv/bin/activate && pip3 install -r requirements.txt && pip3 install -r requirements_GUI.txt
+
+You may have to change
+
+pillow to pillow==10.4.0 inside requirements.txt
+
+Any other issue(s) need to be addressed at [blackbirds repo](https://github.com/p1ngul1n0/blackbird/issues)
+
+after that's finished feel free to run:
+
+    python3 crow.py
 
 ## Features
 
