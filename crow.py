@@ -3,11 +3,13 @@ import subprocess
 import os
 import json
 import requests
+import re
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                              QLabel, QLineEdit, QPushButton, QTextEdit, QFileDialog, 
                              QCheckBox, QGroupBox, QFormLayout, QSpinBox, QMessageBox, QInputDialog)
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
     # Import the separate save and load functions
+from pathlib import Path
 from save_settings import save_settings
 from load_settings import load_settings
 from build_blackbird_command import build_blackbird_command
@@ -281,54 +283,64 @@ class BlackbirdGUI(QMainWindow):
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
     def setup_ai_api_key(self):
-        """Configure AI API key through TOR for anonymous registration"""
+        """Configure AI API key through TOR for anonymous registration ONLY when TOR is enabled"""
         self.output_area.clear()
-        self.output_area.append("🔧 Starting anonymous API Key setup through TOR...")
-        self.output_area.append("This will register your TOR IP instead of your real IP")
+        self.output_area.append("🔧 Starting API Key setup...")
         
-        # Check if TOR is available
-        if hasattr(self, 'tor_spoofer') and self.tor_spoofer.tor_enabled:
+        # Check if TOR is explicitly enabled by the user
+        tor_enabled = hasattr(self, 'tor_checkbox') and self.tor_checkbox.isChecked()
+        
+        if tor_enabled:
+            self.output_area.append("🕶️  TOR enabled - setting up anonymous registration")
+            self.output_area.append("This will register your TOR IP instead of your real IP")
+            
             # Use existing TOR connection
             tor_port = self.tor_spoofer.tor_port
             control_port = self.tor_spoofer.control_port
             tor_password = self.tor_spoofer.tor_password
-        else:
-            # Try to setup TOR with default settings
-            tor_port = 9050
-            control_port = 9051
-            tor_password = None
             
-            # Test TOR connection
-            temp_spoofer = TORSpoofer(self)
-            if not temp_spoofer.enable_tor_for_ai():
-                self.output_area.append("❌ TOR not available for anonymous setup")
-                self.output_area.append("Please ensure TOR is running, or continue with direct connection")
-                
-                reply = QMessageBox.question(
-                    self,
-                    "TOR Not Available",
-                    "TOR is required for anonymous IP registration.\n\n"
-                    "Without TOR, your real IP will be registered with Blackbird AI.\n\n"
-                    "Do you want to continue with direct connection?",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-                )
-                
-                if reply == QMessageBox.StandardButton.Yes:
-                    self.setup_ai_api_key_direct()
-                return
-            else:
-                tor_port = temp_spoofer.tor_port
-                control_port = temp_spoofer.control_port
-                tor_password = temp_spoofer.tor_password
-        
-        # Start TOR setup
-        self.tor_setup_worker = TORAPISetup(tor_port, control_port, tor_password)
-        self.tor_setup_worker.output_signal.connect(self.update_output)
-        self.tor_setup_worker.finished_signal.connect(self.on_tor_setup_finished)
-        self.tor_setup_worker.start()
+            # ONLY delete existing API key when TOR is explicitly enabled
+            self.delete_existing_api_key()
+            
+            # Start TOR setup
+            self.tor_setup_worker = TORAPISetup(tor_port, control_port, tor_password)
+            self.tor_setup_worker.output_signal.connect(self.update_output)
+            self.tor_setup_worker.finished_signal.connect(self.on_tor_setup_finished)
+            self.tor_setup_worker.start()
+            
+        else:
+            # TOR NOT enabled - use direct connection and PRESERVE existing API key
+            self.output_area.append("🔗 Setting up direct connection (TOR not enabled)")
+            self.output_area.append("Your real IP will be registered with Blackbird AI")
+            self.setup_ai_api_key_direct()
+
+            return  # Return early since direct setup handles its own flow
         
         self.run_button.setEnabled(False)
         self.stop_button.setEnabled(True)
+
+    def delete_existing_api_key(self):
+        """Delete existing API key file ONLY when using TOR for fresh registration"""
+        import os
+        import json
+        
+        # Only proceed if TOR is explicitly enabled
+        if not (hasattr(self, 'tor_checkbox') and self.tor_checkbox.isChecked()):
+            return  # Don't delete anything if TOR is not enabled
+        
+        config_paths = [
+            os.path.expanduser("~/.ai_key.json"),
+            ".ai_key.json"
+        ]
+        
+        for config_path in config_paths:
+            if os.path.exists(config_path):
+                try:
+                    os.remove(config_path)
+                    self.output_area.append(f"🗑️  Deleted existing API key for TOR registration: {config_path}")
+                    break
+                except Exception as e:
+                    self.output_area.append(f"⚠️  Could not delete {config_path}: {e}")
 
     def setup_ai_api_key_direct(self):
         """Fallback direct setup without TOR"""
@@ -340,7 +352,7 @@ class BlackbirdGUI(QMainWindow):
         # Create and start the worker for setup
         self.worker = BlackbirdWorker(" ".join(command), is_setup_ai=True)
         self.worker.output_signal.connect(self.update_output)
-        self.worker.finished.connect(self.on_setup_finished)
+        self.worker.finished.connect(lambda: self.on_tor_setup_finished(True))
         self.worker.start()
         
         self.run_button.setEnabled(False)
@@ -352,21 +364,21 @@ class BlackbirdGUI(QMainWindow):
         self.stop_button.setEnabled(False)
         
         if success:
-            self.output_area.append("✅ Anonymous API setup completed through TOR!")
+            self.output_area.append("✅ API setup completed successfully!")
             self.check_api_key_config()
         else:
-            self.output_area.append("❌ TOR setup failed")
+            self.output_area.append("❌ API setup failed")
             
             reply = QMessageBox.question(
                 self,
-                "TOR Setup Failed",
-                "Anonymous setup through TOR failed.\n\n"
-                "Do you want to try direct setup?",
+                "Setup Failed",
+                "API setup failed.\n\n"
+                "Do you want to try again?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
             )
             
             if reply == QMessageBox.StandardButton.Yes:
-                self.setup_ai_api_key_direct()
+                self.setup_ai_api_key()
 
     def check_api_key_config(self):
         """Check if API key was successfully configured"""
@@ -863,18 +875,26 @@ Crows mimic, crows are intelligent!
             if username:
                 base_name = username
             elif email:
-                base_name = email.split('@')[0]  # Use part before @ for filename
+                base_name = email.split('@')[0]
             else:
                 base_name = "analysis"
-            
+
             # Clean filename
-            import re
             safe_name = re.sub(r'[^\w\-_.]', '_', base_name)
-            
             filename = f"blackbird_ai_{safe_name}_{timestamp}.txt"
-            
+
+            # Directory path where you want to save the file (e.g., "output_files")
+            directory_path = "results"
+
+            # Create directory if it doesn't exist
+            if not os.path.exists(directory_path):
+                os.makedirs(directory_path)
+
+            # Full file path with directory
+            full_path = os.path.join(directory_path, filename)
+
             # Save to file
-            with open(filename, 'w', encoding='utf-8') as f:
+            with open(full_path, 'w', encoding='utf-8') as f:
                 f.write('\n'.join(self.ai_results_buffer))
             
             # Notify user

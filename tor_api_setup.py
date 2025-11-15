@@ -1,11 +1,9 @@
-# tor_api_setup.py
-
 import sys
 import os
 import subprocess
 import requests
-from stem import Signal
-from stem.control import Controller
+import socket
+import time
 from PyQt6.QtCore import QThread, pyqtSignal
 
 class TORAPISetup(QThread):
@@ -36,20 +34,55 @@ class TORAPISetup(QThread):
         except Exception as e:
             self.output_signal.emit(f"❌ TOR connection failed: {e}")
             return False
-    
-    # tor_api_setup.py - Fix the authentication logic
 
     def renew_tor_ip(self):
-        """Get fresh TOR IP with proper authentication"""
+        """Get fresh TOR IP with configurable authentication"""
         try:
-            with Controller.from_port(port=self.control_port) as controller:
-                # Use your specific password
-                controller.authenticate(password="dkdkwedkowea[kdwaokdowakkdowokd")
-                self.output_signal.emit("🔐 Authenticated with password")
+            # Use socket-based authentication to match tor_spoofing.py
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(10)
+            sock.connect(('127.0.0.1', self.control_port))
+            
+            # Authenticate with password if provided
+            if self.tor_password:
+                auth_cmd = f'AUTHENTICATE "{self.tor_password}"\r\n'
+                sock.send(auth_cmd.encode())
+                response = sock.recv(1024).decode()
                 
-                controller.signal(Signal.NEWNYM)
-                self.output_signal.emit("🔄 Renewed TOR circuit - New IP address")
-                return True
+                if '250 OK' in response:
+                    self.output_signal.emit("🔐 Authenticated with password")
+                else:
+                    # Try without password
+                    auth_cmd = 'AUTHENTICATE\r\n'
+                    sock.send(auth_cmd.encode())
+                    response = sock.recv(1024).decode()
+            else:
+                # Try without password
+                auth_cmd = 'AUTHENTICATE\r\n'
+                sock.send(auth_cmd.encode())
+                response = sock.recv(1024).decode()
+            
+            if '250 OK' not in response:
+                self.output_signal.emit(f"❌ Authentication failed: {response}")
+                sock.close()
+                return False
+            
+            # Send NEWNYM signal
+            sock.send(b'SIGNAL NEWNYM\r\n')
+            response = sock.recv(1024).decode()
+            
+            if '250 OK' not in response:
+                self.output_signal.emit(f"❌ NEWNYM failed: {response}")
+                sock.close()
+                return False
+            
+            self.output_signal.emit("🔄 Renewed TOR circuit - New IP address")
+            sock.send(b'QUIT\r\n')
+            sock.close()
+            
+            # Wait for circuit to establish
+            time.sleep(3)
+            return True
                 
         except Exception as e:
             self.output_signal.emit(f"❌ TOR renewal failed: {e}")

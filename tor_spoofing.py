@@ -1,11 +1,8 @@
-# tor_spoofing.py
-
 import requests
 import time
 import os
 import subprocess
-from stem import Signal
-from stem.control import Controller
+import socket  # ADD THIS IMPORT
 from PyQt6.QtWidgets import QMessageBox
 
 class TORSpoofer:
@@ -15,7 +12,7 @@ class TORSpoofer:
         self.tor_session = None
         self.tor_port = 9050  # Default TOR port
         self.control_port = 9051  # Default control port
-        self.tor_password = " "  # ← SET YOUR PASSWORD HERE
+        self.tor_password = "hashbrownyummy"  # Set your password here, change it
     
     def log_message(self, message):
         """Log messages to GUI output area if available"""
@@ -25,47 +22,74 @@ class TORSpoofer:
             print(f"TOR: {message}")
     
     def check_tor_connection(self):
-        """Check if TOR is running and accessible"""
-        try:
-            session = requests.Session()
-            session.proxies = {
-                'http': f'socks5h://127.0.0.1:{self.tor_port}',
-                'https': f'socks5h://127.0.0.1:{self.tor_port}'
-            }
-            
-            # Test connection through TOR
-            response = session.get('http://httpbin.org/ip', timeout=30)
-            if response.status_code == 200:
-                ip_data = response.json()
-                self.log_message(f"Connected via TOR - Current IP: {ip_data['origin']}")
-                return True
-                
-        except Exception as e:
-            self.log_message(f"TOR connection failed: {e}")
-            return False
+        """Check if TOR is running and accessible via multiple endpoints."""
+        test_urls = [
+            "https://httpbin.org/ip",          # Returns JSON
+            "https://api.ipify.org?format=json",  # Returns JSON
+            "https://icanhazip.com",           # Returns plain text
+            "https://checkip.amazonaws.com"    # Returns plain text
+        ]
+
+        session = requests.Session()
+        session.proxies = {
+            'http': f'socks5h://127.0.0.1:{self.tor_port}',
+            'https': f'socks5h://127.0.0.1:{self.tor_port}'
+        }
         
+        for url in test_urls:
+            try:
+                response = session.get(url, timeout=15)
+                if response.status_code == 200:
+                    try:
+                        # Try parsing JSON response
+                        ip_data = response.json()
+                        ip = ip_data.get("origin") or ip_data.get("ip")
+                    except ValueError:
+                        # Fallback to plain text response
+                        ip = response.text.strip()
+                    
+                    if ip:
+                        self.log_message(f"Connected via TOR - Current IP: {ip}")
+                        return True
+            except Exception as e:
+                self.log_message(f"TOR test failed for {url}: {e}")
+                continue  # Try next endpoint
+
+        self.log_message("TOR connection failed across all endpoints.")
+        return False
         return False
 
     def renew_tor_connection(self):
         """Renew TOR circuit using raw socket authentication"""
         try:
-            import socket
-            
-            # Use raw socket connection instead of stem Controller
+            # Use raw socket connection
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(10)
             sock.connect(('127.0.0.1', self.control_port))
             
-            # Authenticate
-            auth_cmd = f'AUTHENTICATE " "\r\n' # Edit this as well with plaintext
-            sock.send(auth_cmd.encode())
-            response = sock.recv(1024).decode()
+            # Try authentication with password
+            if self.tor_password:
+                auth_cmd = f'AUTHENTICATE "{self.tor_password}"\r\n'
+                sock.send(auth_cmd.encode())
+                response = sock.recv(1024).decode()
+                
+                if '250 OK' in response:
+                    self.log_message("🔐 Authenticated with password")
+                else:
+                    # Try without password
+                    auth_cmd = 'AUTHENTICATE\r\n'
+                    sock.send(auth_cmd.encode())
+                    response = sock.recv(1024).decode()
+            else:
+                # Try without password
+                auth_cmd = 'AUTHENTICATE\r\n'
+                sock.send(auth_cmd.encode())
+                response = sock.recv(1024).decode()
             
             if '250 OK' not in response:
                 self.log_message(f"❌ Authentication failed: {response}")
                 sock.close()
                 return False
-            
-            self.log_message("🔐 Authenticated with password")
             
             # Send NEWNYM signal
             sock.send(b'SIGNAL NEWNYM\r\n')
@@ -81,18 +105,13 @@ class TORSpoofer:
             sock.close()
             
             # Wait for circuit to establish
-            time.sleep(5)
-            
-            # Verify new IP
-            new_ip = self.get_current_ip()
-            if new_ip:
-                self.log_message(f"🔒 New TOR IP: {new_ip}")
+            time.sleep(3)
             
             return True
             
         except Exception as e:
             self.log_message(f"❌ TOR renewal failed: {e}")
-            return True  # Don't fail completely
+            return False
             
     def setup_tor_session(self):
         """Set up a requests session that routes through TOR"""
@@ -130,6 +149,11 @@ class TORSpoofer:
         self.tor_port = tor_port
         self.control_port = control_port
         
+        # First, ensure TOR is running
+        if not self.ensure_tor_running():
+            self.log_message("❌ Failed to start TOR service")
+            return False
+        
         if self.setup_tor_session():
             self.tor_enabled = True
             # Test IP renewal
@@ -144,6 +168,31 @@ class TORSpoofer:
         else:
             self.tor_enabled = False
             self.log_message("❌ Failed to enable TOR spoofing")
+            return False
+    
+    def ensure_tor_running(self):
+        """Ensure TOR service is running"""
+        try:
+            # Check if TOR is already running
+            if self.check_tor_connection():
+                return True
+            
+            # Try to start TOR service
+            self.log_message("🔄 Starting TOR service...")
+            result = subprocess.run(['sudo', 'systemctl', 'start', 'tor'], 
+                                  capture_output=True, text=True, timeout=30)
+            
+            if result.returncode == 0:
+                self.log_message("✅ TOR service started")
+                # Wait for TOR to initialize
+                time.sleep(5)
+                return self.check_tor_connection()
+            else:
+                self.log_message(f"❌ Failed to start TOR: {result.stderr}")
+                return False
+                
+        except Exception as e:
+            self.log_message(f"❌ TOR service management failed: {e}")
             return False
     
     def disable_tor(self):
