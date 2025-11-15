@@ -17,21 +17,41 @@ class TORHook:
         self.tor_session = None
         
     def enable_tor(self):
-        """Enable TOR connection"""
+        """Enable TOR connection with redundant IP checking"""
+        ip_services = [
+            'http://httpbin.org/ip',
+            'https://icanhazip.com/',
+            'https://checkip.amazonaws.com/'
+        ]
         try:
-            # Test TOR connection
             session = requests.Session()
             session.proxies = {
                 'http': f'socks5h://127.0.0.1:{self.tor_port}',
                 'https': f'socks5h://127.0.0.1:{self.tor_port}'
             }
-            
-            response = session.get('http://httpbin.org/ip', timeout=10)
-            if response.status_code == 200:
+
+            ip = None
+            for url in ip_services:
+                try:
+                    response = session.get(url, timeout=10)
+                    if response.status_code == 200:
+                        if 'httpbin.org' in url:
+                            ip = response.json().get('origin')
+                        else:
+                            ip = response.text.strip()
+                        print(f"🔒 TOR enabled - Current IP from {url}: {ip}")
+                        break
+                except Exception as e:
+                    print(f"❌ Failed to get IP from {url}: {e}")
+
+            if ip:
                 self.tor_session = session
                 self.tor_enabled = True
-                print(f"🔒 TOR enabled - Current IP: {response.json()['origin']}")
                 return True
+            else:
+                print("❌ All IP checks failed, TOR enable unsuccessful")
+                return False
+
         except Exception as e:
             print(f"❌ TOR connection failed: {e}")
             return False
