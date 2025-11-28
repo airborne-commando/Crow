@@ -15,7 +15,9 @@ def load_settings(gui_instance):
         # Define a mapping of setting keys to widget methods and types
         setting_mappings = {
             "username_input": (gui_instance.username_input.setText, str),
+            "username_file_input": (gui_instance.username_file_input.setText, str),
             "email_input": (gui_instance.email_input.setText, str),
+            "email_file_input": (gui_instance.email_file_input.setText, str),
             "permute_checkbox": (gui_instance.permute_checkbox.setChecked, bool),
             "permuteall_checkbox": (gui_instance.permuteall_checkbox.setChecked, bool),
             "no_nsfw_checkbox": (gui_instance.no_nsfw_checkbox.setChecked, bool),
