@@ -536,7 +536,8 @@ Crows mimic, crows are intelligent!
                                 "2. e_code>200\n"
                                 "3. cat=social and uri_check~101010\n"
                                 "4. e_string=@101010.pl or m_code<=404\n\n"
-                                "Concatenate commands with \"\" for multiple filters.")
+                                "Concatenate commands with \"\" for multiple filters.\n\n"
+                                "Visit https://p1ngul1n0.gitbook.io/blackbird/advanced-usage")
 
     def show_permute_help(self):
         QMessageBox.information(self, "Permute Username Help",
