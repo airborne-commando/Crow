@@ -14,7 +14,9 @@ def save_settings(gui_instance):
         # Collect the current settings into a dictionary
         settings = {
             "username_input": gui_instance.username_input.text(),
+            "username_file_input": gui_instance.username_file_input.text(),
             "email_input": gui_instance.email_input.text(),
+            "email_file_input": gui_instance.email_file_input.text(),
             "permute_checkbox": gui_instance.permute_checkbox.isChecked(),
             "permuteall_checkbox": gui_instance.permuteall_checkbox.isChecked(),
             "no_nsfw_checkbox": gui_instance.no_nsfw_checkbox.isChecked(),
