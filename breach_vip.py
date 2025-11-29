@@ -20,57 +20,66 @@ class BreachVIP(QGroupBox):
         # Create email input section
         email_label = QLabel("Email to Search:")
         self.hudson_email_input = QLineEdit()
+        self.hudson_email_input.setPlaceholderText("Enter single email or select file for batch...")
         layout.addWidget(email_label)
         layout.addWidget(self.hudson_email_input)
 
-        # File input section
-        # file_label = QLabel("Email File:")
-        self.breach_email_file_input = QLineEdit()
-        self.breach_email_file_button = QPushButton("Select Email File")
-        self.breach_email_file_button.clicked.connect(self.select_breach_email_file)
+        # Button layout for single and batch operations
+        button_layout = QHBoxLayout()
         
-        email_file_layout = QHBoxLayout()
-        email_file_layout.addWidget(self.breach_email_file_input)
-        email_file_layout.addWidget(self.breach_email_file_button)
+        # Single search button
+        self.breach_search_button = QPushButton("Search Single Email")
+        self.breach_search_button.clicked.connect(self.search_single_email)
+        button_layout.addWidget(self.breach_search_button)
         
-        # layout.addWidget(file_label)
-        layout.addLayout(email_file_layout)
-
-        # Search button
-        self.breach_search_button = QPushButton("Search Breach.VIP")
-        self.breach_search_button.clicked.connect(self.search_breach_rock)
-        layout.addWidget(self.breach_search_button)
+        # Batch search button
+        self.batch_search_button = QPushButton("Search Batch File")
+        self.batch_search_button.clicked.connect(self.search_batch_file)
+        button_layout.addWidget(self.batch_search_button)
+        
+        # Clear button
+        self.clear_button = QPushButton("Clear")
+        self.clear_button.clicked.connect(self.clear_inputs)
+        button_layout.addWidget(self.clear_button)
+        
+        layout.addLayout(button_layout)
 
         self.setLayout(layout)
 
-    def select_breach_email_file(self):
-        """Select email file specifically for Breach.vip search"""
-        file_name, _ = QFileDialog.getOpenFileName(self, "Select Email File for Breach.vip")
+    def clear_inputs(self):
+        """Clear all input fields"""
+        self.hudson_email_input.clear()
+
+    def search_single_email(self):
+        """Search for a single email"""
+        email = self.hudson_email_input.text().strip()
+        
+        if not email:
+            QMessageBox.warning(self, "Input Error", "Please enter an email address to search.")
+            return
+            
+        # Validate single email format
+        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+            QMessageBox.warning(self, "Input Error", "Please enter a valid email address.")
+            return
+            
+        self.process_single_breach_email(email)
+
+    def search_batch_file(self):
+        """Search for emails from a file"""
+        file_name, _ = QFileDialog.getOpenFileName(
+            self, 
+            "Select Email File for Batch Search",
+            "",
+            "Text Files (*.txt);;All Files (*)"
+        )
+        
         if file_name:
-            self.breach_email_file_input.setText(file_name)
+            self.process_breach_email_file(file_name)
 
     def get_output_area(self):
         """Get the output area from parent"""
         return self.parent.output_area if self.parent else None
-
-    # INDENT ALL THESE METHODS TO BE PART OF THE CLASS
-    def search_breach_rock(self):
-        """Search Breach.vip for email information using the official API"""
-        # Use Breach.vip specific inputs
-        email = self.hudson_email_input.text().strip()
-        file_path = self.breach_email_file_input.text().strip()
-        
-        # Check if we have file input
-        if file_path and os.path.isfile(file_path):
-            self.process_breach_email_file(file_path)
-        elif email:
-            # Validate single email format
-            if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
-                QMessageBox.warning(self, "Input Error", "Please enter a valid email address or file path.")
-                return
-            self.process_single_breach_email(email)
-        else:
-            QMessageBox.warning(self, "Input Error", "Please enter an email address or select an email file.")
 
     def process_breach_email_file(self, file_path):
         """Process a file containing multiple emails for Breach.vip search"""
