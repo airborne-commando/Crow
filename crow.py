@@ -109,13 +109,28 @@ class BlackbirdGUI(QMainWindow):
         central_widget.setLayout(layout)
 
         # Adding breach.vip section for email search
+
         breach_group = QGroupBox("Breach.vip Search")
         breach_layout = QVBoxLayout()
-        
+
+        # Create email input section
+        email_label = QLabel("Email to Search:")
         self.hudson_email_input = QLineEdit()
-        breach_layout.addWidget(QLabel("Email to Search:"))
+        breach_layout.addWidget(email_label)
         breach_layout.addWidget(self.hudson_email_input)
 
+        # File input section - USE A DIFFERENT VARIABLE NAME
+        file_label = QLabel("Email File:")
+        self.breach_email_file_input = QLineEdit()  # Changed from self.email_file_input
+        breach_email_file_button = QPushButton("Select Email File")
+        breach_email_file_button.clicked.connect(self.select_breach_email_file)  # Separate method
+        email_file_layout = QHBoxLayout()
+        email_file_layout.addWidget(self.breach_email_file_input)
+        email_file_layout.addWidget(breach_email_file_button)
+        breach_layout.addWidget(file_label)
+        breach_layout.addLayout(email_file_layout)
+
+        # Search button
         self.breach_search_button = QPushButton("Search Breach.VIP")
         self.breach_search_button.clicked.connect(self.search_breach_rock)
         breach_layout.addWidget(self.breach_search_button)
@@ -303,21 +318,21 @@ class BlackbirdGUI(QMainWindow):
     # Breach.vip search functions - PROPERLY INDENTED AT CLASS LEVEL
     def search_breach_rock(self):
         """Search Breach.vip for email information using the official API"""
+        # Use Breach.vip specific inputs
         email = self.hudson_email_input.text().strip()
+        file_path = self.breach_email_file_input.text().strip()
         
-        if not email:
-            QMessageBox.warning(self, "Input Error", "Please enter an email address to search.")
-            return
-            
-        # Check if input is a file path
-        if os.path.isfile(email):
-            self.process_breach_email_file(email)
-        else:
+        # Check if we have file input
+        if file_path and os.path.isfile(file_path):
+            self.process_breach_email_file(file_path)
+        elif email:
             # Validate single email format
             if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
                 QMessageBox.warning(self, "Input Error", "Please enter a valid email address or file path.")
                 return
             self.process_single_breach_email(email)
+        else:
+            QMessageBox.warning(self, "Input Error", "Please enter an email address or select an email file.")
 
     def process_breach_email_file(self, file_path):
         """Process a file containing multiple emails for Breach.vip search"""
@@ -361,7 +376,7 @@ class BlackbirdGUI(QMainWindow):
                 self.output_area.append(f"⚠️  Skipped {len(invalid_emails)} invalid entries")
                 
             self.output_area.append("=" * 60)
-            
+        
             # Create results directory if it doesn't exist
             results_dir = "results"
             if not os.path.exists(results_dir):
@@ -878,6 +893,12 @@ Crows mimic, crows are intelligent!
         file_name, _ = QFileDialog.getOpenFileName(self, "Select Email File")
         if file_name:
             self.email_file_input.setText(file_name)
+
+    def select_breach_email_file(self):
+        """Select email file specifically for Breach.vip search"""
+        file_name, _ = QFileDialog.getOpenFileName(self, "Select Email File for Breach.vip")
+        if file_name:
+            self.breach_email_file_input.setText(file_name)
 
     def save_settings(self):
         # Use the modular save_settings function
