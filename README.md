@@ -263,6 +263,8 @@ What I usually do is do a dry run and filter stuff out that way, it takes time b
 
 you can use the CLI version of blackbird or the GUI, whichever works.
 
+Copy to clipboard WILL not copy the generated filter, you'll need to select the generated filters and do ctrl+c. copy to clipboard simply copies the current filters that are excluded or included. There is no automatic ordering, do so manually.
+
 ## Dependencies (not for word filter)
 
 - PyQt6 >= 6.0.0
