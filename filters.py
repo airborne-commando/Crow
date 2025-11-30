@@ -344,20 +344,27 @@ class BlackbirdFilterGeneratorGUI:
             "total_entries": len(self.loaded_data),
             "files": []
         }
-        
+
         for file_path in self.loaded_files:
             if file_path in self.file_entries:
                 entries = self.file_entries[file_path]
+                # Count categories
+                categories = {}
+                for entry in entries:
+                    if 'category' in entry and entry['category']:
+                        category = str(entry['category'])
+                        categories[category] = categories.get(category, 0) + 1
+                # Sort categories by count
+                categories = dict(sorted(categories.items(), key=lambda x: x[1], reverse=True))
                 file_info = {
-                # Kept for a simple debug
-                    # "file_path": file_path,
                     "relative_path": self.get_relative_source_path(file_path),
                     "entry_count": len(entries),
-                    "categories_count": len(self.get_unique_values(entries, 'category')),
+                    "categories_count": len(categories),
+                    "categories": categories,  # Include category breakdown
                     "websites_count": len(self.get_unique_values(entries, 'name'))
                 }
                 summary["files"].append(file_info)
-        
+
         # Write summary report
         summary_path = os.path.join(export_dir, "summary_report.json")
         with open(summary_path, 'w', encoding='utf-8') as f:
