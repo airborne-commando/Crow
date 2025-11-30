@@ -49,7 +49,7 @@ class BlackbirdFilterGeneratorGUI:
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
         main_frame.columnconfigure(1, weight=1)
-        main_frame.rowconfigure(1, weight=1)
+        main_frame.rowconfigure(1, weight=1)  # This gives the JSON frame proper weight
         
         # File selection section
         file_frame = ttk.LabelFrame(main_frame, text="Data Source", padding="5")
@@ -75,16 +75,17 @@ class BlackbirdFilterGeneratorGUI:
 
         # JSON Structure Display
         json_frame = ttk.LabelFrame(main_frame, text="JSON Structure Preview", padding="5")
-        json_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
+        json_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
         json_frame.columnconfigure(0, weight=1)
+        json_frame.rowconfigure(0, weight=1)  # This makes the text widget expand
 
         # Create a Text widget for JSON preview
         self.json_structure_text = tk.Text(json_frame, wrap=tk.WORD, height=10)
-        self.json_structure_text.grid(row=0, column=0, sticky=(tk.W, tk.E))
+        self.json_structure_text.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
         # Create a Scrollbar
         scrollbar = ttk.Scrollbar(json_frame, orient=tk.VERTICAL, command=self.json_structure_text.yview)
-        scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
+        scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S, tk.E))
 
         # Link the Text widget to the Scrollbar
         self.json_structure_text.config(yscrollcommand=scrollbar.set)
@@ -212,7 +213,7 @@ class BlackbirdFilterGeneratorGUI:
         # Add move up/down buttons for reordering
         reorder_frame = ttk.Frame(right_frame)
         reorder_frame.grid(row=2, column=0, sticky=(tk.W, tk.E))
-        
+            
         ttk.Button(reorder_frame, text="Move Up", 
                   command=self.move_filter_up).pack(side=tk.LEFT, padx=(0, 5))
         ttk.Button(reorder_frame, text="Move Down", 
@@ -241,7 +242,6 @@ class BlackbirdFilterGeneratorGUI:
         
         # Initialize UI state
         self.update_ui_state()
-
     def export_json_analysis(self):
         """Export analysis for each JSON file"""
         if not self.loaded_files:
@@ -279,7 +279,8 @@ class BlackbirdFilterGeneratorGUI:
         
         # Analyze the file data
         analysis = {
-            "source_file": file_path,
+        # Kept for a simple debug
+            # "source_file": file_path,
             "relative_path": self.get_relative_source_path(file_path),
             "total_entries": len(entries),
             "export_timestamp": str(datetime.now()),
@@ -348,7 +349,8 @@ class BlackbirdFilterGeneratorGUI:
             if file_path in self.file_entries:
                 entries = self.file_entries[file_path]
                 file_info = {
-                    "file_path": file_path,
+                # Kept for a simple debug
+                    # "file_path": file_path,
                     "relative_path": self.get_relative_source_path(file_path),
                     "entry_count": len(entries),
                     "categories_count": len(self.get_unique_values(entries, 'category')),
