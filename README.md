@@ -239,7 +239,29 @@ Comprehensive help buttons (`?`) provide detailed information about:
 - Filter syntax and examples
 - Instagram session ID acquisition
 
-## Dependencies
+## Word filter gen for blackbird.
+
+A bare bones GUI for word filtering, should make it easier, comes with an analysis to see which json file (user) is affected by which site and category.
+
+## An example:
+
+> "cat!=health and cat!=video and cat!=political and cat!=shopping and cat!=business and cat!=coding and cat!=blog and cat!=misc and cat!=hobby and cat!=gaming and cat!=tech and cat!=art ..."
+
+You get the idea..
+
+It can also generate, order, exclude and include filters and also include custom filters.
+
+## Will not work with sites with spaces that are multiple. Will error out on blackbirds end, sort out manually.
+
+>"cat!=health and cat!=video and cat!=political and cat!=shopping and name!='Twitter archived tweets' and name!='Parler archived posts'"
+
+## Procedure:
+
+What I usually do is do a dry run and filter stuff out that way, it takes time but it's a bit more accurate with results. I also use a username file.
+
+you can use the CLI version of blackbird or the GUI, whichever works.
+
+## Dependencies (not for word filter)
 
 - PyQt6 >= 6.0.0
 - requests >= 2.25.0
