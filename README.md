@@ -255,6 +255,8 @@ It can also generate, order, exclude and include filters and also include custom
 
 >"cat!=health and cat!=video and cat!=political and cat!=shopping and name!='Twitter archived tweets' and name!='Parler archived posts'"
 
+Use the analysis tool to figure out which site is affecting which user, do a few runs; also manually edit the json files if you must.
+
 ## Procedure:
 
 What I usually do is do a dry run and filter stuff out that way, it takes time but it's a bit more accurate with results. I also use a username file.
