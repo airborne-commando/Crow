@@ -257,6 +257,10 @@ It can also generate, order, exclude and include filters and also include custom
 
 Use the analysis tool to figure out which site is affecting which user, do a few runs; also manually edit the json files if you must.
 
+**Can also seperate spaced out website names for you:**
+
+>"name!='Mastodon API'"
+
 ## Procedure:
 
 What I usually do is do a dry run and filter stuff out that way, it takes time but it's a bit more accurate with results. I also use a username file.
