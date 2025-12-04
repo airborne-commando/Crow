@@ -69,9 +69,14 @@ class BlackbirdFilterGeneratorGUI:
         ttk.Button(file_frame, text="Load Data", 
                   command=self.load_data).grid(row=0, column=3, padx=(10, 0))
         
+        # Configuration buttons in file frame
+        ttk.Button(file_frame, text="Save Configuration", 
+                  command=self.save_configuration).grid(row=0, column=4, padx=(10, 0))
+        ttk.Button(file_frame, text="Load Configuration", 
+                  command=self.load_configuration).grid(row=0, column=5, padx=(10, 0))
 
         ttk.Button(file_frame, text="Export JSON Analysis", 
-                  command=self.export_json_analysis).grid(row=0, column=4, padx=(10, 0))
+                  command=self.export_json_analysis).grid(row=0, column=6, padx=(10, 0))
 
         # JSON Structure Display
         json_frame = ttk.LabelFrame(main_frame, text="JSON Structure Preview", padding="5")
@@ -206,6 +211,10 @@ class BlackbirdFilterGeneratorGUI:
         ttk.Button(filter_btn_frame, text="Remove Selected", 
                   command=self.remove_selected_filter).pack(side=tk.RIGHT)
         
+        # Import filters button
+        ttk.Button(filter_btn_frame, text="Import Filters", 
+                  command=self.import_filters).pack(side=tk.RIGHT, padx=(5, 0))
+        
         # Use a Listbox for filters but we'll handle reordering manually
         self.filters_listbox = tk.Listbox(right_frame, height=10)
         self.filters_listbox.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
@@ -248,6 +257,202 @@ class BlackbirdFilterGeneratorGUI:
         
         # Initialize UI state
         self.update_ui_state()
+    
+    def save_configuration(self):
+        """Save current configuration (filters and settings) to a file"""
+        if not self.filters:
+            if not messagebox.askyesno("Save Configuration", 
+                                      "No filters defined. Save empty configuration?"):
+                return
+        
+        filename = filedialog.asksaveasfilename(
+            title="Save Configuration",
+            defaultextension=".json",
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+        )
+        
+        if not filename:
+            return
+        
+        try:
+            # Create configuration dictionary
+            config = {
+                "metadata": {
+                    "version": "1.0",
+                    "created": str(datetime.now()),
+                    "tool": "Blackbird Filter Generator"
+                },
+                "data_source": {
+                    "path": self.file_path_var.get(),
+                    "recursive": self.recursive_var.get(),
+                    "files_loaded": len(self.loaded_files),
+                    "entries_loaded": len(self.loaded_data)
+                },
+                "filters": {
+                    "list": self.filters[:],  # Copy of filters list
+                    "count": len(self.filters)
+                },
+                "custom_filter_settings": {
+                    "field": self.custom_field_var.get(),
+                    "operator": self.custom_operator_var.get(),
+                    "value": self.custom_value_var.get()
+                },
+                "ui_state": {
+                    "website_search": self.website_search_var.get(),
+                    "website_category_filter": self.website_category_var.get()
+                }
+            }
+            
+            # Save to file
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump(config, f, indent=2, ensure_ascii=False)
+            
+            messagebox.showinfo("Success", f"Configuration saved to:\n{filename}")
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save configuration: {str(e)}")
+    
+    def load_configuration(self):
+        """Load configuration from a file"""
+        filename = filedialog.askopenfilename(
+            title="Load Configuration",
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+        )
+        
+        if not filename:
+            return
+        
+        try:
+            with open(filename, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            
+            # Check if it's a valid configuration file
+            if not isinstance(config, dict) or 'filters' not in config:
+                messagebox.showerror("Error", "Invalid configuration file format")
+                return
+            
+            # Ask user if they want to clear existing filters
+            if self.filters and not messagebox.askyesno("Load Configuration", 
+                                                      "This will replace current filters. Continue?"):
+                return
+            
+            # Clear existing filters
+            self.filters.clear()
+            
+            # Load filters
+            if 'list' in config['filters']:
+                self.filters = config['filters']['list'][:]
+            
+            # Update data source settings if available
+            if 'data_source' in config:
+                data_source = config['data_source']
+                if 'path' in data_source:
+                    self.file_path_var.set(data_source.get('path', ''))
+                if 'recursive' in data_source:
+                    self.recursive_var.set(data_source.get('recursive', True))
+            
+            # Update custom filter settings if available
+            if 'custom_filter_settings' in config:
+                settings = config['custom_filter_settings']
+                self.custom_field_var.set(settings.get('field', 'cat'))
+                self.custom_operator_var.set(settings.get('operator', '!='))
+                self.custom_value_var.set(settings.get('value', ''))
+            
+            # Update UI state if available
+            if 'ui_state' in config:
+                ui_state = config['ui_state']
+                self.website_search_var.set(ui_state.get('website_search', ''))
+                self.website_category_var.set(ui_state.get('website_category_filter', 'All Categories'))
+            
+            # Update UI
+            self.update_filters_display()
+            
+            # If data was already loaded, regenerate the filter
+            if self.loaded_data:
+                self.generate_filter()
+            
+            messagebox.showinfo("Success", f"Configuration loaded from:\n{filename}\n\nLoaded {len(self.filters)} filters.")
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load configuration: {str(e)}")
+    
+    def import_filters(self):
+        """Import only filters from a file (for backward compatibility)"""
+        filename = filedialog.askopenfilename(
+            title="Import Filters",
+            filetypes=[("Text files", "*.txt"), ("JSON files", "*.json"), ("All files", "*.*")]
+        )
+        
+        if not filename:
+            return
+        
+        try:
+            with open(filename, 'r', encoding='utf-8') as f:
+                content = f.read().strip()
+            
+            # Try to parse as JSON first (for configuration files)
+            try:
+                config = json.loads(content)
+                if isinstance(config, dict) and 'filters' in config:
+                    filters_to_add = config['filters'].get('list', [])
+                else:
+                    filters_to_add = []
+            except json.JSONDecodeError:
+                # Not JSON, treat as plain text with filters
+                # Parse filters from text (one per line or separated by "and")
+                lines = [line.strip() for line in content.split('\n') if line.strip()]
+                filters_to_add = []
+                
+                for line in lines:
+                    # Remove surrounding quotes if present
+                    line = line.strip('"\'')
+                    
+                    # Split by "and" if present
+                    if ' and ' in line:
+                        parts = line.split(' and ')
+                        filters_to_add.extend([part.strip() for part in parts if part.strip()])
+                    else:
+                        filters_to_add.append(line)
+            
+            if not filters_to_add:
+                messagebox.showwarning("Import Filters", "No valid filters found in the file")
+                return
+            
+            # Ask user how to import
+            import_option = messagebox.askyesnocancel(
+                "Import Filters",
+                f"Found {len(filters_to_add)} filter(s). How would you like to import them?\n\n"
+                f"Yes: Replace existing filters\n"
+                f"No: Append to existing filters\n"
+                f"Cancel: Abort import"
+            )
+            
+            if import_option is None:  # Cancelled
+                return
+            elif import_option:  # Yes - Replace
+                self.filters = filters_to_add
+            else:  # No - Append
+                self.filters.extend(filters_to_add)
+                # Remove duplicates while preserving order
+                seen = set()
+                unique_filters = []
+                for f in self.filters:
+                    if f not in seen:
+                        seen.add(f)
+                        unique_filters.append(f)
+                self.filters = unique_filters
+            
+            # Update UI
+            self.update_filters_display()
+            
+            # If data was already loaded, regenerate the filter
+            if self.loaded_data:
+                self.generate_filter()
+            
+            messagebox.showinfo("Success", f"Imported {len(filters_to_add)} filter(s)")
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to import filters: {str(e)}")
     
     def export_json_analysis(self):
         """Export analysis for each JSON file"""
