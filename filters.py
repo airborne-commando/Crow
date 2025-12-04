@@ -225,9 +225,15 @@ class BlackbirdFilterGeneratorGUI:
         self.filter_output_text = scrolledtext.ScrolledText(right_frame, height=6, width=50)
         self.filter_output_text.grid(row=4, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(5, 0))
         
+        # Special filters section (for filters with spaces)
+        ttk.Label(right_frame, text="Special Filters (with spaces):").grid(row=5, column=0, sticky=tk.W, pady=(10, 0))
+        
+        self.special_filters_text = scrolledtext.ScrolledText(right_frame, height=4, width=50)
+        self.special_filters_text.grid(row=6, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(5, 0))
+        
         # Action buttons
         action_frame = ttk.Frame(right_frame)
-        action_frame.grid(row=5, column=0, sticky=(tk.W, tk.E), pady=(10, 0))
+        action_frame.grid(row=7, column=0, sticky=(tk.W, tk.E), pady=(10, 0))
         
         ttk.Button(action_frame, text="Generate Filter", 
                   command=self.generate_filter).pack(side=tk.LEFT, padx=(0, 5))
@@ -242,6 +248,7 @@ class BlackbirdFilterGeneratorGUI:
         
         # Initialize UI state
         self.update_ui_state()
+    
     def export_json_analysis(self):
         """Export analysis for each JSON file"""
         if not self.loaded_files:
@@ -258,11 +265,16 @@ class BlackbirdFilterGeneratorGUI:
             for file_path in self.loaded_files:
                 self.export_single_file_analysis(file_path, export_dir)
             
-            messagebox.showinfo("Success", f"JSON analysis exported to:\n{export_dir}")
+            # Generate summary report
+            self.generate_summary_report(export_dir)
+            
+            messagebox.showinfo("Success", f"JSON analysis exported to:\n{export_dir}\n\n"
+                                          f"• Individual file analysis: {len(self.loaded_files)} files\n"
+                                          f"• Summary report: summary_report.json")
             
         except Exception as e:
             messagebox.showerror("Error", f"Failed to export analysis: {str(e)}")
-
+    
     def export_single_file_analysis(self, file_path, export_dir):
         """Export analysis for a single JSON file"""
         if file_path not in self.file_entries:
@@ -279,8 +291,6 @@ class BlackbirdFilterGeneratorGUI:
         
         # Analyze the file data
         analysis = {
-        # Kept for a simple debug
-            # "source_file": file_path,
             "relative_path": self.get_relative_source_path(file_path),
             "total_entries": len(entries),
             "export_timestamp": str(datetime.now()),
@@ -369,33 +379,6 @@ class BlackbirdFilterGeneratorGUI:
         summary_path = os.path.join(export_dir, "summary_report.json")
         with open(summary_path, 'w', encoding='utf-8') as f:
             json.dump(summary, f, indent=2, ensure_ascii=False)
-
-    # Update the export_json_analysis method to include summary
-    def export_json_analysis(self):
-        """Export analysis for each JSON file"""
-        if not self.loaded_files:
-            messagebox.showwarning("Warning", "No data loaded to export")
-            return
-        
-        # Ask for export directory
-        export_dir = filedialog.askdirectory(title="Select Export Directory")
-        if not export_dir:
-            return
-        
-        try:
-            # Create analysis for each file
-            for file_path in self.loaded_files:
-                self.export_single_file_analysis(file_path, export_dir)
-            
-            # Generate summary report
-            self.generate_summary_report(export_dir)
-            
-            messagebox.showinfo("Success", f"JSON analysis exported to:\n{export_dir}\n\n"
-                                          f"• Individual file analysis: {len(self.loaded_files)} files\n"
-                                          f"• Summary report: summary_report.json")
-            
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to export analysis: {str(e)}")
     
     def browse_file(self):
         path = filedialog.askdirectory(title="Select Directory with JSON Files")
@@ -750,13 +733,13 @@ class BlackbirdFilterGeneratorGUI:
         self.update_filters_display()
     
     def add_filter(self, filter_field: str, operator: str, value: str):
-        # Use single quotes for values to avoid escaping issues with Blackbird
-        if operator in ['=', '~', '!='] and (' ' in value or any(char in value for char in ['"', "'", '\\'])):
-            # Use single quotes and escape any existing single quotes
+        # Check if value contains spaces - if so, use single quotes
+        if ' ' in value and operator in ['=', '!=', '~']:
+            # Escape any single quotes in the value
             escaped_value = value.replace("'", "\\'")
             filter_str = f"{filter_field}{operator}'{escaped_value}'"
         else:
-            # For numeric operators or values without special characters
+            # For values without spaces
             filter_str = f"{filter_field}{operator}{value}"
         
         self.filters.append(filter_str)
@@ -802,25 +785,74 @@ class BlackbirdFilterGeneratorGUI:
             self.filters_listbox.insert(tk.END, filter_str)
     
     def generate_filter(self):
-        # Use a proper joining method that handles the logical operators correctly
-        filter_string = self.join_filters_safely()
+        """Generate the complete filter string"""
+        # Clear both text areas
         self.filter_output_text.delete(1.0, tk.END)
-        self.filter_output_text.insert(1.0, filter_string)
+        self.special_filters_text.delete(1.0, tk.END)
+        
+        if not self.filters:
+            messagebox.showwarning("Warning", "No filters to generate")
+            return
+        
+        # Separate filters into two groups: regular and special (with spaces)
+        regular_filters = []
+        special_filters = []
+        
+        for filter_str in self.filters:
+            # Check if the filter has a space in the value part (not just in the field part)
+            # This looks for patterns like name!='Mastodon API' or name='Some Site'
+            if "'" in filter_str or " " in filter_str.split("=")[-1].split("!=")[-1].split("~")[-1]:
+                special_filters.append(filter_str)
+            else:
+                regular_filters.append(filter_str)
+        
+        # Generate regular filter string (joined with 'and')
+        if regular_filters:
+            regular_string = " and ".join(regular_filters)
+            # Wrap in quotes
+            self.filter_output_text.insert(1.0, f'"{regular_string}"')
+        
+        # Generate special filters (each on its own line, wrapped in quotes)
+        if special_filters:
+            for i, filter_str in enumerate(special_filters):
+                # Wrap each special filter in quotes
+                self.special_filters_text.insert(tk.END, f'"{filter_str}"')
+                if i < len(special_filters) - 1:
+                    self.special_filters_text.insert(tk.END, '\n')
         
         # Show a warning if there are potential issues
         self.validate_filters()
     
     def join_filters_safely(self) -> str:
         """
-        Safely join filters with 'and' operators, ensuring proper formatting
-        that won't break Blackbird's parser
+        Generate the complete filter string for copying/saving
         """
         if not self.filters:
             return ""
         
-        # Simply join with ' and ' - Blackbird should handle this correctly
-        # The individual filters are already properly formatted with quotes
-        return " and ".join(self.filters)
+        # Separate filters into two groups
+        regular_filters = []
+        special_filters = []
+        
+        for filter_str in self.filters:
+            # Check if the filter has a space in the value part
+            if "'" in filter_str or " " in filter_str.split("=")[-1].split("!=")[-1].split("~")[-1]:
+                special_filters.append(filter_str)
+            else:
+                regular_filters.append(filter_str)
+        
+        result = []
+        
+        # Add regular filters first
+        if regular_filters:
+            regular_string = " and ".join(regular_filters)
+            result.append(f'"{regular_string}"')
+        
+        # Add special filters
+        for filter_str in special_filters:
+            result.append(f'"{filter_str}"')
+        
+        return "\n".join(result)
     
     def validate_filters(self):
         """Check for potential issues in the generated filter"""
@@ -836,22 +868,6 @@ class BlackbirdFilterGeneratorGUI:
         
         if duplicates:
             warnings.append(f"Duplicate filters found: {', '.join(duplicates)}")
-        
-        # Check for proper quoting
-        for i, filter_str in enumerate(self.filters):
-            # Look for unquoted values with spaces
-            if ' ' in filter_str and "'" not in filter_str and '"' not in filter_str:
-                parts = filter_str.split(' ', 1)
-                if len(parts) == 2:
-                    field_op = parts[0]
-                    value = parts[1]
-                    if any(op in field_op for op in ['=', '~', '!=']) and ' ' in value:
-                        warnings.append(f"Filter '{filter_str}' might need quotes around values with spaces")
-        
-        # Check for mixed quote types (though single quotes are preferred now)
-        for filter_str in self.filters:
-            if '"' in filter_str and "'" in filter_str:
-                warnings.append(f"Filter '{filter_str}' uses both single and double quotes")
         
         if warnings:
             messagebox.showwarning("Filter Validation", "\n".join(warnings))
