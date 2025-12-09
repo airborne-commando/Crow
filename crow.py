@@ -110,14 +110,6 @@ class BlackbirdGUI(QMainWindow):
         layout = QVBoxLayout()
         central_widget.setLayout(layout)
 
-        # self.breach = BreachVIP(self)
-        # layout.addWidget(self.breach)
-
-        # self.breach_username = BreachVIPUsernameSearch(self)
-        # layout.addWidget(self.breach_username)
-
-        # Input Group: For entering usernames, emails, and file selection
-        # Input Group: For entering usernames, emails, and file selection
         input_group = QGroupBox("Blackbird Search")
         input_layout = QFormLayout()
 
@@ -173,7 +165,10 @@ class BlackbirdGUI(QMainWindow):
         self.tor_spoofer = TORSpoofer(self)
         self.setup_tor_ui(options_layout)  # Pass the options_layout to the method
         
-        # Permute username checkbox with help button on the right
+        # Permute username, Permute all, and Exclude NSFW checkboxes in a horizontal row
+        permute_row_layout = QHBoxLayout()
+        
+        # Permute username checkbox with help button
         permute_layout = QHBoxLayout()
         self.permute_checkbox = QCheckBox("Permute username")
         permute_layout.addWidget(self.permute_checkbox)
@@ -181,9 +176,9 @@ class BlackbirdGUI(QMainWindow):
         permute_help_button.setFixedSize(30, 30)
         permute_help_button.clicked.connect(self.show_permute_help)
         permute_layout.addWidget(permute_help_button)
-        options_layout.addLayout(permute_layout)
-
-        # Permute all elements checkbox with help button on the right
+        permute_row_layout.addLayout(permute_layout)
+        
+        # Permute all elements checkbox with help button
         permuteall_layout = QHBoxLayout()
         self.permuteall_checkbox = QCheckBox("Permute all")
         permuteall_layout.addWidget(self.permuteall_checkbox)
@@ -191,12 +186,18 @@ class BlackbirdGUI(QMainWindow):
         permuteall_help_button.setFixedSize(30, 30)
         permuteall_help_button.clicked.connect(self.show_permuteall_help)
         permuteall_layout.addWidget(permuteall_help_button)
-        options_layout.addLayout(permuteall_layout)
-
+        permute_row_layout.addLayout(permuteall_layout)
         
+        # Exclude NSFW checkbox (no help button for this one)
         self.no_nsfw_checkbox = QCheckBox("Exclude NSFW sites")
-        options_layout.addWidget(self.no_nsfw_checkbox)
+        permute_row_layout.addWidget(self.no_nsfw_checkbox)
         
+        # Add some spacing/stretch
+        permute_row_layout.addStretch()
+        
+        # Add this horizontal row to the main options layout
+        options_layout.addLayout(permute_row_layout)
+                
         # Proxy input
         proxy_layout = QHBoxLayout()
         proxy_layout.addWidget(QLabel("Proxy:"))
