@@ -1,3 +1,5 @@
+import breach_vip_username 
+import breach_vip
 import sys
 import subprocess
 import os
@@ -16,7 +18,6 @@ from save_settings import save_settings
 from load_settings import load_settings
 from build_blackbird_command import build_blackbird_command
 from tor_spoofing import TORSpoofer
-from breach_vip import BreachVIP
 from tor_api_setup import TORAPISetup
 
 # Worker class that handles executing the Blackbird command in a separate thread
@@ -109,36 +110,42 @@ class BlackbirdGUI(QMainWindow):
         layout = QVBoxLayout()
         central_widget.setLayout(layout)
 
-        self.breach = BreachVIP(self)
-        layout.addWidget(self.breach)
+        # self.breach = BreachVIP(self)
+        # layout.addWidget(self.breach)
 
+        # self.breach_username = BreachVIPUsernameSearch(self)
+        # layout.addWidget(self.breach_username)
 
+        # Input Group: For entering usernames, emails, and file selection
         # Input Group: For entering usernames, emails, and file selection
         input_group = QGroupBox("Blackbird Search")
         input_layout = QFormLayout()
-        
+
+        # Username row with input field and file button
+        username_row = QHBoxLayout()
         self.username_input = QLineEdit()
-        input_layout.addRow("Username(s):", self.username_input)
-        
-        self.email_input = QLineEdit()
-        input_layout.addRow("Email(s):", self.email_input)
-        
-        # File inputs for usernames and emails
-        self.username_file_input = QLineEdit()
-        username_file_button = QPushButton("Select Username File")
+        self.username_input.setPlaceholderText("Enter username(s) or select file")
+        username_row.addWidget(self.username_input, 4)  # 80% width
+
+        username_file_button = QPushButton("📁 File")
+        username_file_button.setToolTip("Select username file")
         username_file_button.clicked.connect(self.select_username_file)
-        username_file_layout = QHBoxLayout()
-        username_file_layout.addWidget(self.username_file_input)
-        username_file_layout.addWidget(username_file_button)
-        input_layout.addRow("Username File:", username_file_layout)
-        
-        self.email_file_input = QLineEdit()
-        email_file_button = QPushButton("Select Email File")
+        username_file_button.setFixedWidth(80)
+        username_row.addWidget(username_file_button, 1)  # 20% width
+        input_layout.addRow("Username(s):", username_row)
+
+        # Email row with input field and file button
+        email_row = QHBoxLayout()
+        self.email_input = QLineEdit()
+        self.email_input.setPlaceholderText("Enter email(s) or select file")
+        email_row.addWidget(self.email_input, 4)  # 80% width
+
+        email_file_button = QPushButton("📁 File")
+        email_file_button.setToolTip("Select email file")
         email_file_button.clicked.connect(self.select_email_file)
-        email_file_layout = QHBoxLayout()
-        email_file_layout.addWidget(self.email_file_input)
-        email_file_layout.addWidget(email_file_button)
-        input_layout.addRow("Email File:", email_file_layout)
+        email_file_button.setFixedWidth(80)
+        email_row.addWidget(email_file_button, 1)  # 20% width
+        input_layout.addRow("Email(s):", email_row)
 
         input_group.setLayout(input_layout)
         layout.addWidget(input_group)
@@ -235,11 +242,17 @@ class BlackbirdGUI(QMainWindow):
         self.json_checkbox = QCheckBox("JSON (Results)")
         self.verbose_checkbox = QCheckBox("Verbose (LOGS)")
         self.dump_checkbox = QCheckBox("Dump HTML (Results)")
+        self.enable_breach_username_checkbox = QCheckBox("Enable Breach.vip username search")
+        self.enable_breach_username_checkbox.setChecked(False)
+        self.enable_breach_email_checkbox = QCheckBox("Enable Breach.vip email search")
+        self.enable_breach_email_checkbox.setChecked(False)
         output_layout.addWidget(self.csv_checkbox)
         output_layout.addWidget(self.pdf_checkbox)
         output_layout.addWidget(self.json_checkbox)        
         output_layout.addWidget(self.verbose_checkbox)
         output_layout.addWidget(self.dump_checkbox)
+        output_layout.addWidget(self.enable_breach_username_checkbox)
+        output_layout.addWidget(self.enable_breach_email_checkbox)
         output_group.setLayout(output_layout)
         layout.addWidget(output_group)
 
@@ -485,13 +498,17 @@ Crows mimic, crows are intelligent!
         # Open a file dialog to select a username file and set its path in the input field
         file_name, _ = QFileDialog.getOpenFileName(self, "Select Username File")
         if file_name:
-            self.username_file_input.setText(file_name)
+            self.username_input.setText(f"file:{file_name}")  # Prefix to indicate file
+            # Or if you want to keep both separate:
+            # self.username_file_input.setText(file_name)
 
     def select_email_file(self):
         # Open a file dialog to select an email file and set its path in the input field
         file_name, _ = QFileDialog.getOpenFileName(self, "Select Email File")
         if file_name:
-            self.email_file_input.setText(file_name)
+            self.email_input.setText(f"file:{file_name}")  # Prefix to indicate file
+            # Or if you want to keep both separate:
+            # self.email_file_input.setText(file_name)
 
     def save_settings(self):
         # Use the modular save_settings function
@@ -668,10 +685,6 @@ Crows mimic, crows are intelligent!
                     if not self.tor_spoofer.enable_tor_for_ai():
                         self.output_area.append("⚠️  TOR spoofing failed, continuing with direct connection")
             
-            import os
-            import json
-            import os.path
-            
             # Check multiple locations for API key
             api_key_found = False
             
@@ -714,6 +727,72 @@ Crows mimic, crows are intelligent!
                 else:
                     QMessageBox.warning(self, "Warning", "AI analysis disabled - no API key configured.")
                     self.AI_checkbox.setChecked(False)
+
+        # ================================================================
+        # HOOK: BREACH.VIP USERNAME SEARCH
+        # ================================================================
+        if breach_vip_username.is_enabled(self) and self.username_input.text().strip():
+            
+            self.output_area.append("\n" + "=" * 60)
+            self.output_area.append("🔍 BREACH.VIP USERNAME SEARCH HOOK")
+            self.output_area.append("=" * 60)
+            
+            text = self.username_input.text().strip()
+            
+            # Check if it's a file reference
+            if text.startswith("file:"):
+                file_path = text[5:]  # Remove "file:" prefix
+                if os.path.exists(file_path):
+                    self.output_area.append(f"Searching Breach.vip for usernames from file: {os.path.basename(file_path)}")
+                    breach_vip_username.process_username_file(file_path, self.output_area)
+                else:
+                    self.output_area.append(f"❌ File not found: {file_path}")
+            else:
+                # Regular username input (could be single or multiple usernames)
+                usernames = [u.strip() for u in text.split(',') if u.strip()]
+                if len(usernames) == 1:
+                    self.output_area.append(f"Searching Breach.vip for username: {usernames[0]}")
+                    breach_vip_username.process_single_username(usernames[0], self.output_area)
+                else:
+                    self.output_area.append(f"Searching Breach.vip for {len(usernames)} usernames")
+                    for username in usernames:
+                        self.output_area.append(f"  • Processing: {username}")
+                        breach_vip_username.process_single_username(username, self.output_area)
+            
+            self.output_area.append("=" * 60 + "\n")
+
+        # ================================================================
+        # HOOK: BREACH.VIP EMAIL SEARCH
+        # ================================================================
+        if breach_vip.is_enabled(self) and self.email_input.text().strip():
+            
+            self.output_area.append("\n" + "=" * 60)
+            self.output_area.append("📧 BREACH.VIP EMAIL SEARCH HOOK")
+            self.output_area.append("=" * 60)
+            
+            text = self.email_input.text().strip()
+            
+            # Check if it's a file reference
+            if text.startswith("file:"):
+                file_path = text[5:]  # Remove "file:" prefix
+                if os.path.exists(file_path):
+                    self.output_area.append(f"Searching Breach.vip for emails from file: {os.path.basename(file_path)}")
+                    breach_vip.process_email_file(file_path, self.output_area)
+                else:
+                    self.output_area.append(f"❌ File not found: {file_path}")
+            else:
+                # Regular email input (could be single or multiple emails)
+                emails = [e.strip() for e in text.split(',') if e.strip()]
+                if len(emails) == 1:
+                    self.output_area.append(f"Searching Breach.vip for email: {emails[0]}")
+                    breach_vip.process_single_email(emails[0], self.output_area)
+                else:
+                    self.output_area.append(f"Searching Breach.vip for {len(emails)} emails")
+                    for email in emails:
+                        self.output_area.append(f"  • Processing: {email}")
+                        breach_vip.process_single_email(email, self.output_area)
+            
+            self.output_area.append("=" * 60 + "\n")
         
         # Rest of the existing run_blackbird method...
         if self.worker and self.worker.isRunning():
@@ -723,10 +802,13 @@ Crows mimic, crows are intelligent!
         # Get all input values
         username_input = self.username_input.text()
         email_input = self.email_input.text()
-        username_file_input = self.username_file_input.text()
-        email_file_input = self.email_file_input.text()
+        # username_file_input = self.username_file_input.text()
+        # email_file_input = self.email_file_input.text()
         permute_checkbox = self.permute_checkbox.isChecked()
+        enable_breach_username_checkbox = self.enable_breach_username_checkbox.isChecked()
+        enable_breach_email_checkbox = self.enable_breach_email_checkbox.isChecked()
         permuteall_checkbox = self.permuteall_checkbox.isChecked()
+        tor_checkbox = self.tor_checkbox.isChecked()
         AI_checkbox = self.AI_checkbox.isChecked()
         no_nsfw_checkbox = self.no_nsfw_checkbox.isChecked()
         no_update_checkbox = self.no_update_checkbox.isChecked()
@@ -746,14 +828,28 @@ Crows mimic, crows are intelligent!
             self.output_area.append("Note: This will analyze results using Blackbird AI")
             self.output_area.append("")
 
-        command = build_blackbird_command(username_input, email_input, username_file_input, 
-                                          email_file_input, permute_checkbox, permuteall_checkbox, 
-                                          AI_checkbox, no_nsfw_checkbox, no_update_checkbox, 
-                                          csv_checkbox, pdf_checkbox, json_checkbox, verbose_checkbox, 
-                                          dump_checkbox, proxy_input, timeout_spinbox, 
-                                          filter_input, instagram_session_id)
+        command = build_blackbird_command(
+            username_input,           # username(s) - could include "file:" prefix
+            email_input,              # email(s) - could include "file:" prefix
+            "",                       # username_file_input (empty string - we're using file: prefix)
+            "",                       # email_file_input (empty string - we're using file: prefix)
+            permute_checkbox,
+            permuteall_checkbox,
+            AI_checkbox,
+            no_nsfw_checkbox,
+            no_update_checkbox,
+            csv_checkbox,
+            pdf_checkbox,
+            json_checkbox,
+            verbose_checkbox,
+            dump_checkbox,
+            proxy_input,
+            timeout_spinbox,
+            filter_input,
+            instagram_session_id
+        )
 
-        self.output_area.clear()
+        # self.output_area.clear()
         # Pass AI_checkbox to determine if we need to auto-confirm
         self.worker = BlackbirdWorker(" ".join(command), needs_ai_confirmation=AI_checkbox)
         self.worker.output_signal.connect(self.update_output)
@@ -762,6 +858,10 @@ Crows mimic, crows are intelligent!
         
         self.run_button.setEnabled(False)
         self.stop_button.setEnabled(True)
+
+    def get_output_area(self):
+        """Get the output area from parent"""
+        return self.output_area if hasattr(self, 'output_area') else None
     
     def stop_blackbird(self):
         # Stop the Blackbird process if running
@@ -770,6 +870,7 @@ Crows mimic, crows are intelligent!
             self.worker.wait()
         self.run_button.setEnabled(True)  # Re-enable Run button
         self.stop_button.setEnabled(False)  # Disable Stop button
+        self.output_area.clear()
 
     def update_output(self, text):
         # Initialize AI results buffer if it doesn't exist

@@ -14,12 +14,15 @@ def save_settings(gui_instance):
         # Collect the current settings into a dictionary
         settings = {
             "username_input": gui_instance.username_input.text(),
-            "username_file_input": gui_instance.username_file_input.text(),
+            # "username_file_input": gui_instance.username_file_input.text(),
             "email_input": gui_instance.email_input.text(),
             # "hudson_email_input": gui_instance.hudson_email_input.text(),
-            "email_file_input": gui_instance.email_file_input.text(),
+            # "email_file_input": gui_instance.email_file_input.text(),
             # "breach_email_file_input": gui_instance.breach_email_file_input.text(),
+            "tor_checkbox": gui_instance.tor_checkbox.isChecked(),
             "permute_checkbox": gui_instance.permute_checkbox.isChecked(),
+            "enable_breach_username_checkbox": gui_instance.enable_breach_username_checkbox.isChecked(),
+            "enable_breach_email_checkbox": gui_instance.enable_breach_email_checkbox.isChecked(),
             "permuteall_checkbox": gui_instance.permuteall_checkbox.isChecked(),
             "no_nsfw_checkbox": gui_instance.no_nsfw_checkbox.isChecked(),
             "proxy_input": gui_instance.proxy_input.text(),

@@ -15,18 +15,54 @@ def build_blackbird_command(username_input, email_input, username_file_input, em
             for item in items:
                 cmd_list.extend([param, item])
 
-    # Add parameters for username and email
-    add_params("-u", username_input, command)
-    add_params("-e", email_input, command)
+    # Handle username input (could be direct input or file: prefix)
+    if username_input:
+        if username_input.startswith("file:"):
+            # Extract file path from the "file:" prefix
+            file_path = username_input[5:].strip()
+            if os.path.exists(file_path):
+                command.extend(["--username-file", file_path])
+            else:
+                # File doesn't exist, fall back to treating as regular input
+                print(f"Warning: File not found: {file_path}. Treating as username input.")
+                add_params("-u", username_input.replace("file:", ""), command)
+        else:
+            # Regular username input
+            add_params("-u", username_input, command)
+    
+    # Handle email input (could be direct input or file: prefix)
+    if email_input:
+        if email_input.startswith("file:"):
+            # Extract file path from the "file:" prefix
+            file_path = email_input[5:].strip()
+            if os.path.exists(file_path):
+                command.extend(["--email-file", file_path])
+            else:
+                # File doesn't exist, fall back to treating as regular input
+                print(f"Warning: File not found: {file_path}. Treating as email input.")
+                add_params("-e", email_input.replace("file:", ""), command)
+        else:
+            # Regular email input
+            add_params("-e", email_input, command)
 
-    # Add file parameters if selected
-    if username_file_input:
+    # Note: username_file_input and email_file_input parameters are kept for backward compatibility
+    # but we're now using the "file:" prefix system instead
+    if username_file_input and os.path.exists(username_file_input):
         command.extend(["--username-file", username_file_input])
-    if email_file_input:
+    if email_file_input and os.path.exists(email_file_input):
         command.extend(["--email-file", email_file_input])
 
+    # Check if we have any username input for permute options
+    # Extract actual username from input (remove file: prefix if present)
+    actual_username_input = username_input
+    if username_input and username_input.startswith("file:"):
+        # If it's a file, we can't permute it
+        actual_username_input = ""
+    elif username_input:
+        actual_username_input = username_input
+
     # Add permute options if selected and exactly one username is provided
-    if username_input and len(username_input.split(',')) == 1:
+    if actual_username_input and len(actual_username_input.split(',')) == 1:
         if permute_checkbox:
             command.append("--permute")
         elif permuteall_checkbox:
