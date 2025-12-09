@@ -12,6 +12,7 @@ A PyQt6-based graphical user interface for the Blackbird OSINT tool, providing a
 - **Real-time Output**: Live monitoring of search progress and results
 - **Instagram Integration**: Enhanced metadata extraction with session ID
 - **AI Analysis**: Automated profile analysis and risk assessment
+- **Breach VIP Intergration**: Can use breach.vip to check for user breaches.
 
 ## Installation
 
