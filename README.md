@@ -266,7 +266,7 @@ Use the analysis tool to figure out which site is affecting which user, do a few
 
 **Tips and Tricks**
 
-Create a tmpfs directory to store all of your logs and results so it can get deleted upon shutdown, for extra security use keepassXC or use a LUKS drive and use cold storage.
+Create a tmpfs directory or store it inside /tmp to store all of your logs and results so it can get deleted upon shutdown, for extra security use keepassXC or use a LUKS drive and use cold storage.
 
 ## Procedure:
 
