@@ -1,5 +1,7 @@
 # Crow - Blackbird GUI Frontend
 
+![Crow](./imgs/Crow.png)
+
 A PyQt6-based graphical user interface for the Blackbird OSINT tool, providing an intuitive way to conduct username and email investigations across multiple platforms.
 
 ## Features
@@ -258,9 +260,13 @@ It can also generate, order, exclude and include filters and also include custom
 
 Use the analysis tool to figure out which site is affecting which user, do a few runs; also manually edit the json files if you must.
 
-**Can also seperate spaced out website names for you:**
+**Can also separate spaced out website names for you:**
 
 >"name!='Mastodon API'"
+
+**Tips and Tricks**
+
+Create a tmpfs directory to store all of your logs and results so it can get deleted upon shutdown, for extra security use keepassXC or use a LUKS drive and use cold storage.
 
 ## Procedure:
 
